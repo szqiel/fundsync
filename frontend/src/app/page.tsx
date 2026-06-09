@@ -1,15 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { UploadCloud, Link as LinkIcon, Download, Terminal, ArrowRight, FileText } from "lucide-react";
+import { Upload, Link2, Sparkles, Download, Check, Lock } from "lucide-react";
 
 export default function Home() {
   const [appState, setAppState] = useState<"idle" | "processing" | "success">("idle");
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState("");
-  const [replacementsCount, setReplacementsCount] = useState(0);
-
-  // Terminal log animation simulation state
   const [logStage, setLogStage] = useState(0);
 
   useEffect(() => {
@@ -19,10 +16,7 @@ export default function Home() {
         setTimeout(() => setLogStage(1), 800),
         setTimeout(() => setLogStage(2), 1800),
         setTimeout(() => setLogStage(3), 3000),
-        setTimeout(() => {
-          setReplacementsCount(14); // mock value for Phase 4 UI testing
-          setAppState("success");
-        }, 4500)
+        setTimeout(() => setAppState("success"), 4500)
       ];
       return () => timers.forEach(clearTimeout);
     }
@@ -35,41 +29,32 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-center p-4 selection:bg-secondary selection:text-secondary-foreground">
-      {/* Editorial Headline */}
-      <div className="text-center mb-12 max-w-2xl mt-8">
-        <h1 className="text-5xl md:text-6xl font-serif text-foreground tracking-tight mb-4" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-          FundSync
-        </h1>
-        <p className="text-muted-foreground text-lg md:text-xl font-sans font-light max-w-lg mx-auto leading-relaxed">
-          Tailor your master pitch decks for specific corporate sponsors using context-aware AI.
-        </p>
-      </div>
+    <div className="min-h-screen bg-[#F9F8F6] flex flex-col font-sans text-[#1A1A1A] selection:bg-[#CFEE91] selection:text-[#476501]">
+      {/* Top Navbar */}
+      <header className="w-full flex items-center justify-between px-8 py-6 border-b border-[#EAEAEA]">
+        <div className="font-serif font-bold text-2xl text-[#476501]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>FundSync</div>
+        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-[#44493a]">
+          <a href="#" className="hover:text-[#476501] transition-colors">About</a>
+        </nav>
+        <button className="bg-[#476501] text-white px-6 py-2.5 rounded hover:bg-[#5f7f1f] transition-colors text-sm font-medium">
+          Get Started
+        </button>
+      </header>
 
-      {/* Main Interaction Bento */}
-      <div className="w-full max-w-xl bg-card border border-border rounded-[var(--radius)] overflow-hidden transition-all duration-500 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-        
-        {/* STATE: IDLE (Upload & URL) */}
+      <main className="flex-1 flex flex-col items-center pt-20 px-4 pb-24">
+        {/* STATE: IDLE */}
         {appState === "idle" && (
-          <form onSubmit={handleSimulateProcess} className="p-8 flex flex-col gap-8 animate-in fade-in duration-500">
-            <div className="flex flex-col gap-3">
-              <label className="text-sm font-semibold font-sans text-foreground uppercase tracking-wider text-xs">Target Sponsor URL</label>
-              <div className="relative">
-                <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <input 
-                  type="url" 
-                  required
-                  placeholder="https://company.com/csr"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  className="w-full pl-11 pr-4 py-4 bg-input/20 border border-input rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-ring transition-colors font-sans text-sm"
-                />
-              </div>
-            </div>
+          <div className="w-full max-w-[1000px] flex flex-col items-center animate-in fade-in duration-500">
+            <h1 className="text-[56px] font-serif font-bold tracking-tight mb-4 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
+              Sync your outreach.
+            </h1>
+            <p className="text-[#44493A] text-lg mb-16 max-w-[600px] text-center leading-relaxed">
+              Transform standard pitch decks into targeted, hyper-personalized sponsor communications in seconds.
+            </p>
 
-            <div className="flex flex-col gap-3">
-              <label className="text-sm font-semibold font-sans text-foreground uppercase tracking-wider text-xs">Master Pitch Deck (.pptx)</label>
-              <div className="relative border border-dashed border-input rounded-md p-10 hover:border-primary/50 transition-colors flex flex-col items-center justify-center cursor-pointer group bg-input/5">
+            <div className="w-full grid grid-cols-1 md:grid-cols-2 bg-white border border-[#EAEAEA] shadow-[0_2px_10px_rgba(0,0,0,0.02)] min-h-[400px]">
+              {/* Left: Upload */}
+              <div className="border-r border-[#EAEAEA] flex flex-col items-center justify-center p-12 bg-[#FBFBFA]/50 relative group cursor-pointer hover:bg-[#F9F9F8] transition-colors">
                 <input 
                   type="file" 
                   accept=".pptx"
@@ -77,80 +62,151 @@ export default function Home() {
                   onChange={(e) => setFile(e.target.files?.[0] || null)}
                   className="absolute inset-0 opacity-0 cursor-pointer"
                 />
-                <UploadCloud className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors mb-4" />
-                {file ? (
-                  <span className="font-sans text-sm font-medium text-primary bg-secondary px-4 py-1.5 rounded-full">
-                    {file.name}
-                  </span>
-                ) : (
-                  <span className="font-sans text-sm text-muted-foreground text-center">
-                    Drag and drop your deck here, or click to browse.
-                  </span>
-                )}
+                <div className="w-16 h-16 bg-[#F0EFEA] rounded-xl flex items-center justify-center mb-6">
+                  <Upload className="w-6 h-6 text-[#757968]" strokeWidth={1.5} />
+                </div>
+                <h3 className="font-serif text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-playfair-display), serif" }}>Drop Pitch Deck</h3>
+                <p className="text-[#757968] text-center mb-6 text-sm max-w-[240px]">
+                  Upload your master .pptx file here to begin synthesis.
+                </p>
+                <div className="bg-[#EAE8E0] text-[#757968] font-mono text-xs px-3 py-1 rounded tracking-wider uppercase">
+                  {file ? file.name : "MAX 15MB"}
+                </div>
+              </div>
+
+              {/* Right: URL & Submit */}
+              <form onSubmit={handleSimulateProcess} className="p-12 flex flex-col h-full">
+                <div className="mb-8 text-xs font-mono tracking-widest text-[#757968] uppercase">
+                  Target Sponsor Intel
+                </div>
+                <div className="relative border-b border-[#EAEAEA] mb-8 pb-4 flex items-center gap-4 group-focus-within:border-[#476501] transition-colors">
+                  <Link2 className="w-5 h-5 text-[#757968]" strokeWidth={1.5} />
+                  <input
+                    type="url"
+                    placeholder="https://sponsor-website.com"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    required
+                    className="w-full outline-none bg-transparent placeholder-[#B0B0A8] text-[#111111] text-lg"
+                  />
+                </div>
+                <p className="text-[#757968] text-sm leading-relaxed mb-auto">
+                  Provide the target sponsor's primary URL. Our engine will extract mandate data, investment theses, and tonal alignment parameters.
+                </p>
+                <button 
+                  type="submit"
+                  disabled={!file || !url}
+                  className="w-full bg-[#1A1C15] text-white h-16 mt-8 flex items-center justify-center gap-3 hover:bg-[#2F3129] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <span className="font-serif text-2xl tracking-wide" style={{ fontFamily: "var(--font-playfair-display), serif" }}>Sync</span>
+                  <Sparkles className="w-5 h-5" strokeWidth={1.5} />
+                </button>
+              </form>
+            </div>
+            
+            <div className="mt-8 text-xs font-mono text-[#757968] flex items-center gap-2 tracking-widest uppercase">
+              <Lock className="w-3.5 h-3.5" />
+              Enterprise-grade encryption on all uploaded assets.
+            </div>
+          </div>
+        )}
+
+        {/* STATE: PROCESSING */}
+        {appState === "processing" && (
+          <div className="w-full max-w-[800px] flex flex-col items-center animate-in fade-in duration-500">
+            <h1 className="text-4xl font-serif font-bold tracking-tight mb-2 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
+              Processing Generation
+            </h1>
+            <p className="text-[#44493A] mb-12 text-center">
+              Please wait while we sync and compile your resources.
+            </p>
+
+            <div className="w-full bg-[#2F3129] rounded-lg overflow-hidden shadow-2xl border border-[#44493A]">
+              <div className="h-10 bg-[#1A1C15] flex items-center px-4 gap-2 border-b border-[#2F3129] relative">
+                <div className="w-3 h-3 rounded-full bg-[#ED6A5E]"></div>
+                <div className="w-3 h-3 rounded-full bg-[#F4BF4F]"></div>
+                <div className="w-3 h-3 rounded-full bg-[#61C554]"></div>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="font-mono text-xs text-[#757968]">fundsync_process_v2.4.sh</span>
+                </div>
+              </div>
+              <div className="p-8 min-h-[400px] font-mono text-[13px] text-[#EAE8E0] flex flex-col gap-4 leading-relaxed">
+                <p className="opacity-100">{">"} Initializing secure synthesis engine...</p>
+                {logStage >= 1 && <p className="animate-in fade-in slide-in-from-bottom-1">{">"} Extracting semantic vectors from master presentation...</p>}
+                {logStage >= 2 && <p className="animate-in fade-in slide-in-from-bottom-1">{">"} Scraping target CSR mandate and structural goals...</p>}
+                {logStage >= 3 && <p className="animate-in fade-in slide-in-from-bottom-1 text-[#CFEE91]">{">"} Gemini synthesis complete. Patching XML layers...</p>}
+                
+                <div className="mt-auto flex gap-3 items-center text-[#CFEE91]">
+                  <span>{">"}</span>
+                  <span className="w-2.5 h-[18px] bg-[#CFEE91] animate-pulse"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STATE: SUCCESS */}
+        {appState === "success" && (
+          <div className="w-full max-w-[700px] bg-white border border-[#EAEAEA] p-16 flex flex-col items-center animate-in zoom-in-95 duration-500 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+            <div className="w-16 h-16 bg-[#CFEE91] rounded-xl flex items-center justify-center mb-8">
+              <Check className="w-8 h-8 text-[#476501]" strokeWidth={2.5} />
+            </div>
+            
+            <h1 className="text-5xl font-serif font-bold tracking-tight mb-4 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
+              Personalization Complete.
+            </h1>
+            <p className="text-[#44493A] text-lg mb-12 text-center max-w-[480px] leading-relaxed">
+              Your presentation has been successfully adapted. Review the summary of changes below.
+            </p>
+
+            <div className="w-full grid grid-cols-3 gap-3 mb-12">
+              <div className="border border-[#EAEAEA] p-8 flex flex-col items-center justify-center text-center">
+                <div className="text-3xl font-serif font-bold mb-3 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>14</div>
+                <div className="text-[10px] font-mono text-[#757968] tracking-widest uppercase leading-loose">Text Strings<br/>Adapted</div>
+              </div>
+              <div className="border border-[#EAEAEA] bg-[#F4F4E8] p-8 flex flex-col items-center justify-center text-center">
+                <div className="text-[#476501] mb-3">
+                  <Sparkles className="w-7 h-7" strokeWidth={1.5} />
+                </div>
+                <div className="text-[10px] font-mono text-[#476501] tracking-widest uppercase leading-loose">Brand Colors<br/>Matched<br/>To Sponsor</div>
+              </div>
+              <div className="border border-[#EAEAEA] p-8 flex flex-col items-center justify-center text-center">
+                <div className="text-3xl font-serif font-bold mb-3 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>3</div>
+                <div className="text-[10px] font-mono text-[#757968] tracking-widest uppercase leading-loose">Slides<br/>Modified</div>
               </div>
             </div>
 
-            <button 
-              type="submit"
-              className="mt-2 w-full bg-primary text-primary-foreground font-sans font-medium py-4 rounded-md hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 shadow-sm"
-            >
-              Alchemize Deck <ArrowRight className="h-4 w-4" />
+            <button className="w-full max-w-[400px] bg-[#2F3129] text-white h-14 flex items-center justify-center gap-3 hover:bg-[#1A1C15] transition-colors mb-8">
+              <Download className="w-5 h-5" strokeWidth={2} />
+              <span className="font-sans font-medium text-lg">Download .pptx</span>
             </button>
-          </form>
-        )}
-
-        {/* STATE: PROCESSING (Terminal Log) */}
-        {appState === "processing" && (
-          <div className="p-8 bg-foreground text-background min-h-[400px] flex flex-col font-mono text-sm animate-in fade-in duration-500">
-            <div className="flex items-center gap-2 mb-6 opacity-50 border-b border-background/20 pb-4 text-xs tracking-widest uppercase">
-              <Terminal className="h-4 w-4" />
-              <span>FundSync Core Engine v1.0</span>
-            </div>
-            <div className="flex flex-col gap-4 flex-1 mt-2">
-              <p className="animate-pulse">{">"} Initializing secure environment...</p>
-              {logStage >= 1 && <p className="animate-in fade-in slide-in-from-bottom-2 duration-300">{">"} Extracting presentation nodes from Master Deck...</p>}
-              {logStage >= 2 && <p className="animate-in fade-in slide-in-from-bottom-2 duration-300">{">"} Scraping contextual CSR directives from sponsor URL...</p>}
-              {logStage >= 3 && <p className="animate-in fade-in slide-in-from-bottom-2 duration-300 text-secondary">{">"} Mapping Gemini semantic replacements. Recompiling XML layer...</p>}
-            </div>
-          </div>
-        )}
-
-        {/* STATE: SUCCESS (Summary Card) */}
-        {appState === "success" && (
-          <div className="p-10 flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-500">
-            <div className="h-20 w-20 bg-secondary text-secondary-foreground rounded-full flex items-center justify-center mb-6">
-              <FileText className="h-8 w-8" />
-            </div>
-            <h2 className="text-3xl font-serif text-foreground mb-3" style={{ fontFamily: "var(--font-playfair-display), serif" }}>Deck Alchemized!</h2>
-            <p className="text-muted-foreground font-sans mb-10 text-lg max-w-sm">
-              We successfully mapped <strong className="text-foreground font-medium">{replacementsCount} text occurrences</strong> seamlessly into the presentation.
-            </p>
             
-            <div className="w-full flex flex-col gap-3">
-              <button 
-                onClick={() => {
-                  setAppState("idle");
-                  setFile(null);
-                  setUrl("");
-                }}
-                className="w-full bg-foreground text-background font-sans font-medium py-4 rounded-md hover:bg-foreground/90 transition-colors flex items-center justify-center gap-2 shadow-md"
-              >
-                <Download className="h-4 w-4" /> Download Tailored .pptx
-              </button>
-              <button 
-                onClick={() => {
-                  setAppState("idle");
-                  setFile(null);
-                  setUrl("");
-                }}
-                className="w-full bg-transparent border border-border text-foreground font-sans font-medium py-3 rounded-md hover:bg-muted transition-colors"
-              >
-                Start Another
-              </button>
-            </div>
+            <button 
+              onClick={() => {
+                setAppState("idle");
+                setFile(null);
+                setUrl("");
+              }}
+              className="text-[#476501] font-mono text-xs uppercase tracking-widest hover:opacity-70 transition-opacity"
+            >
+              Return to Dashboard
+            </button>
           </div>
         )}
-      </div>
-    </main>
+      </main>
+      
+      {/* Footer */}
+      {(appState === "idle" || appState === "success") && (
+        <footer className="w-full px-12 py-8 border-t border-[#EAEAEA] flex flex-col md:flex-row items-center justify-between font-mono text-xs text-[#111111] font-bold">
+          <div>© 2024 FundSync AI. All rights reserved.</div>
+          <div className="flex items-center gap-6 mt-4 md:mt-0 font-medium text-[#757968]">
+            <a href="#" className="hover:text-[#111111] transition-colors">About</a>
+            <a href="#" className="hover:text-[#111111] transition-colors">Privacy Policy</a>
+            <a href="#" className="hover:text-[#111111] transition-colors">Terms of Service</a>
+            <a href="#" className="hover:text-[#111111] transition-colors">Contact</a>
+          </div>
+        </footer>
+      )}
+    </div>
   );
 }
