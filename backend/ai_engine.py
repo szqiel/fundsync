@@ -71,12 +71,6 @@ def generate_replacements_with_gemini(presentation_paragraphs: List[str], sponso
         return {}
 
     genai.configure(api_key=api_key)
-    
-    # Use gemini-1.5-flash for fast response time
-    model = genai.GenerativeModel(
-        'gemini-1.5-flash', 
-        generation_config={"response_mime_type": "application/json"}
-    )
 
     # Format the paragraphs list so Gemini can easily identify exact matches
     paragraphs_json = json.dumps(presentation_paragraphs, indent=2)
@@ -110,11 +104,22 @@ def generate_replacements_with_gemini(presentation_paragraphs: List[str], sponso
     }}
     """
 
-    try:
-        response = model.generate_content(prompt)
-        replacements = json.loads(response.text)
-        print(f"Gemini generated {len(replacements)} replacements.")
-        return replacements
-    except Exception as e:
-        print(f"Gemini generation failed: {e}")
-        return {}
+    # V2 Models with primary and fallback options
+    v2_models = ['gemini-2.0-flash', 'gemini-2.0-flash-lite']
+    
+    for model_name in v2_models:
+        try:
+            print(f"Attempting content generation with {model_name}...")
+            model = genai.GenerativeModel(
+                model_name, 
+                generation_config={"response_mime_type": "application/json"}
+            )
+            response = model.generate_content(prompt)
+            replacements = json.loads(response.text)
+            print(f"Gemini {model_name} successfully generated {len(replacements)} replacements.")
+            return replacements
+        except Exception as e:
+            print(f"Model {model_name} failed or timed out: {e}. Trying fallback...")
+
+    print("All Gemini V2 models failed to generate content.")
+    return {}
