@@ -7,7 +7,8 @@ import shutil
 import uuid
 import json
 
-from pptx_engine import replace_text_in_pptx, validate_pptx
+from pptx_engine import replace_text_in_pptx, validate_pptx, extract_text_from_pptx
+from ai_engine import scrape_target_url, generate_replacements_with_gemini
 
 # --- Step 2.2: Middleware for 15MB Size Limit ---
 class LimitUploadSize(BaseHTTPMiddleware):
@@ -47,7 +48,6 @@ os.makedirs("tmp", exist_ok=True)
 async def process_deck(
     file: UploadFile = File(...),
     target_url: str = Form(...),
-    # Added for Phase 2 testing before Gemini integration
     test_replacements: str = Form(default="{}") 
 ):
     if not file.filename.endswith(".pptx"):
@@ -62,16 +62,28 @@ async def process_deck(
         with open(input_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # Parse test replacements (for Phase 2 testing)
-        try:
-            replacements = json.loads(test_replacements)
-        except json.JSONDecodeError:
-            replacements = {}
+        # --- Phase 3: AI & Context Integration ---
+        # 1. Extract text from the uploaded Master Deck
+        presentation_text = extract_text_from_pptx(input_path)
+        
+        # 2. Scrape the Sponsor URL (includes Safe Mode fallback)
+        sponsor_context = scrape_target_url(target_url)
+        
+        # 3. Call Gemini to map replacements
+        replacements = generate_replacements_with_gemini(presentation_text, sponsor_context)
+        
+        # Fallback to test_replacements if Gemini is not configured or failed
+        if not replacements:
+            try:
+                replacements = json.loads(test_replacements)
+            except json.JSONDecodeError:
+                replacements = {}
             
-        # Step 2.3: Process the presentation via the document engine
+        # --- Phase 2: Document Engine Execution ---
+        # 4. Process the presentation via the document engine
         replacements_made = replace_text_in_pptx(input_path, output_path, replacements)
 
-        # Step 2.4: Anti-Corruption Validation
+        # 5. Anti-Corruption Validation
         if not validate_pptx(output_path):
             raise HTTPException(status_code=500, detail="Document corruption detected during generation. XML structure is invalid.")
 

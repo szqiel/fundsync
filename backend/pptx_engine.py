@@ -36,3 +36,24 @@ def validate_pptx(file_path: str) -> bool:
     except Exception as e:
         print(f"Anti-Corruption check failed for {file_path}: {e}")
         return False
+
+def extract_text_from_pptx(input_path: str) -> str:
+    """
+    Extracts all text from the presentation to feed into the AI.
+    """
+    prs = Presentation(input_path)
+    text_content = []
+    
+    for slide_idx, slide in enumerate(prs.slides):
+        slide_text = []
+        for shape in slide.shapes:
+            if shape.has_text_frame:
+                for paragraph in shape.text_frame.paragraphs:
+                    for run in paragraph.runs:
+                        if run.text.strip():
+                            slide_text.append(run.text.strip())
+        if slide_text:
+            text_content.append(f"--- Slide {slide_idx + 1} ---")
+            text_content.extend(slide_text)
+            
+    return "\n".join(text_content)
