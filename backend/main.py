@@ -42,7 +42,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Replacements-Count"],
+    expose_headers=["X-Replacements-Count", "X-Slides-Modified"],
 )
 
 os.makedirs("tmp", exist_ok=True)
@@ -85,14 +85,17 @@ async def process_deck(
             
         # --- Phase 2: Document Engine Execution ---
         # 4. Process the presentation via the document engine
-        replacements_made = replace_text_in_pptx(input_path, output_path, replacements)
+        replacements_made, slides_modified = replace_text_in_pptx(input_path, output_path, replacements)
 
         # 5. Anti-Corruption Validation
         if not validate_pptx(output_path):
             raise HTTPException(status_code=500, detail="Document corruption detected during generation. XML structure is invalid.")
 
         # Return the modified file as a stream with the custom metrics header
-        headers = {"X-Replacements-Count": str(replacements_made)}
+        headers = {
+            "X-Replacements-Count": str(replacements_made),
+            "X-Slides-Modified": str(slides_modified)
+        }
         
         return FileResponse(
             path=output_path, 

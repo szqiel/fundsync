@@ -104,10 +104,17 @@ def generate_replacements_with_gemini(presentation_paragraphs: List[str], sponso
     }}
     """
 
-    # V2 Models with primary and fallback options
-    v2_models = ['gemini-2.0-flash', 'gemini-2.0-flash-lite']
+    # Models list prioritizing available Gemini 2.5 and 2.0 options
+    models_to_try = [
+        'gemini-2.5-flash',
+        'gemini-2.0-flash', 
+        'gemini-2.0-flash-lite', 
+        'gemini-2.5-pro',
+        'gemini-2.0-pro-exp-02-05'
+    ]
     
-    for model_name in v2_models:
+    last_error = None
+    for model_name in models_to_try:
         try:
             print(f"Attempting content generation with {model_name}...")
             model = genai.GenerativeModel(
@@ -119,7 +126,10 @@ def generate_replacements_with_gemini(presentation_paragraphs: List[str], sponso
             print(f"Gemini {model_name} successfully generated {len(replacements)} replacements.")
             return replacements
         except Exception as e:
+            last_error = e
             print(f"Model {model_name} failed or timed out: {e}. Trying fallback...")
 
-    print("All Gemini V2 models failed to generate content.")
-    return {}
+    raise RuntimeError(
+        f"All Gemini models failed to generate content. Last error: {last_error}. "
+        "Please check your API key, project rate limits, or quota details in Google AI Studio."
+    )
