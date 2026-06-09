@@ -7,25 +7,58 @@ export default function Home() {
   const [appState, setAppState] = useState<"idle" | "processing" | "success">("idle");
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState("");
+  const [replacementsCount, setReplacementsCount] = useState(0);
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [logStage, setLogStage] = useState(0);
 
   useEffect(() => {
     if (appState === "processing") {
       setLogStage(0);
       const timers = [
-        setTimeout(() => setLogStage(1), 800),
-        setTimeout(() => setLogStage(2), 1800),
-        setTimeout(() => setLogStage(3), 3000),
-        setTimeout(() => setAppState("success"), 4500)
+        setTimeout(() => setLogStage(1), 1500),
+        setTimeout(() => setLogStage(2), 3500),
+        setTimeout(() => setLogStage(3), 6000),
       ];
       return () => timers.forEach(clearTimeout);
     }
   }, [appState]);
 
-  const handleSimulateProcess = (e: React.FormEvent) => {
+  const handleProcessDeck = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !url) return;
+    
     setAppState("processing");
+    
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("target_url", url);
+
+    try {
+      const response = await fetch("http://localhost:8000/api/process-deck", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      // Read custom header from FastAPI for metrics display
+      const count = response.headers.get("X-Replacements-Count") || "0";
+      setReplacementsCount(parseInt(count, 10));
+
+      // Parse returning blob to make it downloadable
+      const blob = await response.blob();
+      const tempDownloadUrl = window.URL.createObjectURL(blob);
+      
+      setDownloadUrl(tempDownloadUrl);
+      setAppState("success");
+
+    } catch (error) {
+      console.error("Processing failed:", error);
+      alert("Error processing deck. Please check if the FastAPI backend is running.");
+      setAppState("idle");
+    }
   };
 
   return (
@@ -75,7 +108,7 @@ export default function Home() {
               </div>
 
               {/* Right: URL & Submit */}
-              <form onSubmit={handleSimulateProcess} className="p-12 flex flex-col h-full">
+              <form onSubmit={handleProcessDeck} className="p-12 flex flex-col h-full">
                 <div className="mb-8 text-xs font-mono tracking-widest text-[#757968] uppercase">
                   Target Sponsor Intel
                 </div>
@@ -161,7 +194,7 @@ export default function Home() {
 
             <div className="w-full grid grid-cols-3 gap-3 mb-12">
               <div className="border border-[#EAEAEA] p-8 flex flex-col items-center justify-center text-center">
-                <div className="text-3xl font-serif font-bold mb-3 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>14</div>
+                <div className="text-3xl font-serif font-bold mb-3 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>{replacementsCount}</div>
                 <div className="text-[10px] font-mono text-[#757968] tracking-widest uppercase leading-loose">Text Strings<br/>Adapted</div>
               </div>
               <div className="border border-[#EAEAEA] bg-[#F4F4E8] p-8 flex flex-col items-center justify-center text-center">
@@ -176,16 +209,21 @@ export default function Home() {
               </div>
             </div>
 
-            <button className="w-full max-w-[400px] bg-[#2F3129] text-white h-14 flex items-center justify-center gap-3 hover:bg-[#1A1C15] transition-colors mb-8">
+            <a 
+              href={downloadUrl || "#"}
+              download={`FundSync_${file?.name || "Targeted_Deck.pptx"}`}
+              className="w-full max-w-[400px] bg-[#2F3129] text-white h-14 flex items-center justify-center gap-3 hover:bg-[#1A1C15] transition-colors mb-8 rounded-md"
+            >
               <Download className="w-5 h-5" strokeWidth={2} />
               <span className="font-sans font-medium text-lg">Download .pptx</span>
-            </button>
+            </a>
             
             <button 
               onClick={() => {
                 setAppState("idle");
                 setFile(null);
                 setUrl("");
+                setDownloadUrl(null);
               }}
               className="text-[#476501] font-mono text-xs uppercase tracking-widest hover:opacity-70 transition-opacity"
             >
