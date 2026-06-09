@@ -6,6 +6,10 @@ import os
 import shutil
 import uuid
 import json
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 from pptx_engine import replace_text_in_pptx, validate_pptx, extract_text_from_pptx
 from ai_engine import scrape_target_url, generate_replacements_with_gemini
