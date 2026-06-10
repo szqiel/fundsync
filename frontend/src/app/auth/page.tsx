@@ -63,6 +63,23 @@ export default function AuthPage() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/`,
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to sign in with Google.");
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F9F8F6] flex flex-col font-sans text-[#1A1A1A] selection:bg-[#CFEE91] selection:text-[#476501]">
       {/* Top Header */}
@@ -158,6 +175,40 @@ export default function AuthPage() {
               )}
             </motion.button>
           </form>
+
+          <div className="relative flex py-4 items-center">
+            <div className="flex-grow border-t border-[#EAEAEA]"></div>
+            <span className="flex-shrink mx-4 text-[10px] font-mono tracking-widest text-[#B0B0A8] uppercase">OR CONNECT</span>
+            <div className="flex-grow border-t border-[#EAEAEA]"></div>
+          </div>
+
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+            className="w-full border border-[#EAEAEA] bg-white text-[#1A1C15] h-12 flex items-center justify-center gap-3 hover:bg-[#FBFBFA] transition-colors text-sm font-medium rounded-sm shadow-sm"
+          >
+            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+              <path
+                fill="#EA4335"
+                d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.33 0 3.357 2.72 1.487 6.643l3.779 3.122z"
+              />
+              <path
+                fill="#4285F4"
+                d="M23.49 12.275c0-.825-.074-1.62-.21-2.386H12v4.514h6.438a5.503 5.503 0 0 1-2.39 3.614l3.722 2.883c2.18-2.008 3.72-4.97 3.72-8.625z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.266 14.235a7.195 7.195 0 0 1-.377-2.235c0-.783.136-1.536.377-2.235L1.487 6.643A11.968 11.968 0 0 0 0 12c0 1.92.453 3.737 1.258 5.357l4.008-3.122z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 24c3.24 0 5.97-1.075 7.96-2.924l-3.722-2.883c-1.033.692-2.355 1.107-4.238 1.107-3.264 0-6.033-2.204-7.018-5.176l-4.008 3.122A11.972 11.972 0 0 0 12 24z"
+              />
+            </svg>
+            Sign In with Google
+          </motion.button>
 
           <div className="mt-8 pt-6 border-t border-[#EAEAEA] flex justify-between items-center text-xs font-mono">
             <span className="text-[#757968]">
