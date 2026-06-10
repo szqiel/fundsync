@@ -159,3 +159,79 @@ async def compile_deck(
         cleanup_temp_files(input_path, output_path)
         raise HTTPException(status_code=500, detail=str(e))
 
+import cloudconvert
+
+@app.post("/api/generate-thumbnail")
+def generate_thumbnail(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...)
+):
+    if not file.filename.endswith(".pptx"):
+        raise HTTPException(status_code=400, detail="Invalid file type. Only .pptx is allowed.")
+        
+    api_key = os.getenv("CLOUDCONVERT_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="Missing CLOUDCONVERT_API_KEY in backend .env")
+        
+    cloudconvert.configure(api_key=api_key, sandbox=False)
+    
+    session_id = str(uuid.uuid4())
+    os.makedirs("tmp", exist_ok=True)
+    input_path = os.path.abspath(f"tmp/thumb_in_{session_id}.pptx")
+    output_png = os.path.abspath(f"tmp/thumb_out_{session_id}.png")
+    
+    try:
+        content = file.file.read()
+        
+        with open(input_path, "wb") as buffer:
+            buffer.write(content)
+            
+        print("Calling CloudConvert to securely render thumbnail...")
+        job = cloudconvert.Job.create(payload={
+            "tasks": {
+                "import-my-file": {
+                    "operation": "import/upload"
+                },
+                "convert-my-file": {
+                    "operation": "convert",
+                    "input": "import-my-file",
+                    "input_format": "pptx",
+                    "output_format": "png",
+                    "pages": "1-1"
+                },
+                "export-my-file": {
+                    "operation": "export/url",
+                    "input": "convert-my-file"
+                }
+            }
+        })
+        
+        upload_task_id = job['tasks'][0]['id']
+        upload_task = cloudconvert.Task.find(id=upload_task_id)
+        cloudconvert.Task.upload(file_name=input_path, task=upload_task)
+        
+        print("Waiting for CloudConvert job completion...")
+        job = cloudconvert.Job.wait(id=job['id'])
+        
+        for task in job['tasks']:
+            if task['name'] == 'export-my-file' and task['status'] == 'finished':
+                file_info = task['result']['files'][0]
+                cloudconvert.download(filename=output_png, url=file_info['url'])
+                break
+            
+        if os.path.exists(output_png):
+            background_tasks.add_task(cleanup_temp_files, input_path, output_png)
+            return FileResponse(
+                path=output_png,
+                filename="thumbnail.png",
+                media_type="image/png"
+            )
+        else:
+            raise HTTPException(status_code=500, detail="Failed to produce output image from CloudConvert.")
+            
+    except HTTPException:
+        cleanup_temp_files(input_path)
+        raise
+    except Exception as e:
+        cleanup_temp_files(input_path)
+        raise HTTPException(status_code=500, detail=str(e))

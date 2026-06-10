@@ -28,11 +28,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AlchemyChamber } from "./AlchemyChamber";
+import { AgenticFeed } from "./AgenticFeed";
 
 interface Deck {
   id: string;
   name: string;
   storage_path: string;
+  thumbnail_url?: string;
   created_at: string;
   size?: string;
 }
@@ -252,7 +254,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     }
 
     try {
-      // Upload to Supabase Storage
+      // 1. Upload Presentation to Supabase Storage
       const storagePath = `${user.id}/${deckId}_${file.name}`;
       const { error: uploadError } = await supabase.storage
         .from("master-decks")
@@ -260,13 +262,43 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
       if (uploadError) throw uploadError;
 
-      // Save row to decks table
+      // 2. Generate exact slide screenshot using backend Python PPTX zip extractor
+      let thumbnailUrl = "";
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        const thumbResponse = await fetch("http://localhost:8000/api/generate-thumbnail", {
+          method: "POST",
+          body: formData
+        });
+        
+        if (thumbResponse.ok) {
+          const thumbBlob = await thumbResponse.blob();
+          const thumbStoragePath = `${user.id}/${deckId}_thumbnail.png`;
+          
+          const { error: thumbUploadError } = await supabase.storage
+            .from("master-decks")
+            .upload(thumbStoragePath, thumbBlob, { contentType: "image/png" });
+            
+          if (!thumbUploadError) {
+            const { data: publicUrlData } = supabase.storage
+              .from("master-decks")
+              .getPublicUrl(thumbStoragePath);
+            thumbnailUrl = publicUrlData.publicUrl;
+          }
+        }
+      } catch (err) {
+        console.error("Thumbnail generation skipped/failed:", err);
+      }
+
+      // 3. Save row to decks table
       const { error: dbError } = await supabase
         .from("decks")
         .insert({
           user_id: user.id,
           name: file.name,
-          storage_path: storagePath
+          storage_path: storagePath,
+          thumbnail_url: thumbnailUrl || null
         });
 
       if (dbError) throw dbError;
@@ -877,73 +909,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                         {logStage >= 2 && "Synthesizing copies using Gemini tone controls..."}
                       </p>
 
-                      {/* Progress Stepper */}
-                      <div className="w-full max-w-[600px] bg-white border border-[#EAEAEA] p-8 shadow-[0_4px_20px_rgba(0,0,0,0.01)] rounded-sm space-y-6 text-left">
-                        {/* Step 1: Text extraction */}
-                        <div className="flex items-center gap-4">
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 ${
-                            logStage >= 1 
-                              ? "bg-[#476501] text-white" 
-                              : "border-2 border-[#476501] text-[#476501] animate-pulse"
-                          }`}>
-                            {logStage >= 1 ? "✓" : "1"}
-                          </div>
-                          <div className="flex-1">
-                            <h4 className={`text-sm font-bold ${logStage >= 1 ? "text-[#111111]" : "text-[#476501]"}`}>
-                              Extract Presentation Copy
-                            </h4>
-                            <p className="text-xs text-[#757968] mt-0.5">
-                              Recurse through shapes, tables, and grouped boxes.
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Step 2: Firecrawl scraping */}
-                        <div className="flex items-center gap-4">
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 ${
-                            logStage >= 2 
-                              ? "bg-[#476501] text-white" 
-                              : logStage === 1
-                                ? "border-2 border-[#476501] text-[#476501] animate-pulse"
-                                : "border-2 border-[#EAEAEA] text-[#B0B0A8]"
-                          }`}>
-                            {logStage >= 2 ? "✓" : "2"}
-                          </div>
-                          <div className="flex-1">
-                            <h4 className={`text-sm font-bold ${
-                              logStage >= 2 ? "text-[#111111]" : logStage === 1 ? "text-[#476501]" : "text-[#B0B0A8]"
-                            }`}>
-                              Scrape Target Sponsor
-                            </h4>
-                            <p className="text-xs text-[#757968] mt-0.5">
-                              Scan URL context parameters for values and mandates.
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Step 3: Gemini copywriting */}
-                        <div className="flex items-center gap-4">
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 ${
-                            logStage >= 3 
-                              ? "bg-[#476501] text-white" 
-                              : logStage >= 2
-                                ? "border-2 border-[#476501] text-[#476501] animate-pulse"
-                                : "border-2 border-[#EAEAEA] text-[#B0B0A8]"
-                          }`}>
-                            {logStage >= 3 ? "✓" : "3"}
-                          </div>
-                          <div className="flex-1">
-                            <h4 className={`text-sm font-bold ${
-                              logStage >= 3 ? "text-[#111111]" : logStage >= 2 ? "text-[#476501]" : "text-[#B0B0A8]"
-                            }`}>
-                              Gemini Tonal Synthesis
-                            </h4>
-                            <p className="text-xs text-[#757968] mt-0.5">
-                              Apply copywriting guidelines and output modifications mapping.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+                      <AgenticFeed logStage={logStage} />
                     </motion.div>
                   )}
 
@@ -1087,40 +1053,52 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
               {/* Decks Grid */}
               {decks.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {decks.map((deck) => (
                     <div
                       key={deck.id}
-                      className="bg-white border border-[#EAEAEA] p-6 hover:shadow-sm transition-all flex items-start gap-4 relative group"
+                      className="bg-white border border-[#EAEAEA] rounded-sm shadow-[0_2px_10px_rgba(0,0,0,0.01)] hover:shadow-md transition-all flex flex-col relative group overflow-hidden"
                     >
-                      <div className="w-12 h-12 rounded bg-[#F0EFEA] flex items-center justify-center text-[#757968] group-hover:bg-[#476501]/10 group-hover:text-[#476501] transition-all">
-                        <FileText className="w-6 h-6" />
-                      </div>
-                      <div className="flex-1 min-w-0 pr-8">
-                        <h3 className="font-serif font-bold text-lg text-[#111111] truncate mb-1" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                          {deck.name}
-                        </h3>
-                        <p className="text-xs text-[#757968] font-mono leading-none">
-                          Uploaded: {new Date(deck.created_at).toLocaleDateString()} {deck.size && `• ${deck.size}`}
-                        </p>
-                        <div className="flex gap-4 mt-4 text-xs font-mono">
+                      {/* Image Thumbnail Header */}
+                      <div className="w-full aspect-video bg-[#F0EFEA] border-b border-[#EAEAEA] flex items-center justify-center relative overflow-hidden">
+                        {deck.thumbnail_url ? (
+                          <img src={deck.thumbnail_url} alt={deck.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                        ) : (
+                          <div className="text-[#B0B0A8] flex flex-col items-center">
+                            <FileText className="w-8 h-8 mb-2" />
+                            <span className="text-[10px] font-mono uppercase tracking-widest">No Preview</span>
+                          </div>
+                        )}
+                        
+                        {/* Hover Overlay action */}
+                        <div className="absolute inset-0 bg-[#111111]/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <button
                             onClick={() => {
                               setSelectedDeckId(deck.id);
                               setCustomFile(null);
                               setActiveTab("studio");
                             }}
-                            className="text-[#476501] font-bold hover:underline flex items-center gap-1"
+                            className="bg-[#CFEE91] text-[#476501] px-5 py-2.5 text-xs font-mono font-bold tracking-widest uppercase rounded-sm flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-all shadow-lg"
                           >
-                            Personalize Studio <ArrowRight className="w-3 h-3" />
+                            <Sparkles className="w-3.5 h-3.5" /> Pitch Sponsor
                           </button>
                         </div>
+                      </div>
+
+                      {/* Card Footer */}
+                      <div className="p-5">
+                        <h3 className="font-serif font-bold text-lg text-[#111111] truncate mb-1" style={{ fontFamily: "var(--font-playfair-display), serif" }} title={deck.name}>
+                          {deck.name}
+                        </h3>
+                        <p className="text-[10px] font-mono tracking-widest uppercase text-[#757968]">
+                          {new Date(deck.created_at).toLocaleDateString()} {deck.size && `• ${deck.size}`}
+                        </p>
                       </div>
 
                       {/* Delete button */}
                       <button
                         onClick={() => handleDeleteDeck(deck.id, deck.storage_path, deck.name)}
-                        className="absolute top-6 right-6 text-[#B0B0A8] hover:text-[#ED6A5E] p-1 transition-colors"
+                        className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-[#B0B0A8] hover:text-[#ED6A5E] p-1.5 rounded-sm shadow-sm opacity-0 group-hover:opacity-100 transition-all border border-[#EAEAEA]"
                         title="Delete deck"
                       >
                         <Trash2 className="w-4 h-4" />

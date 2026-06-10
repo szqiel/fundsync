@@ -135,13 +135,12 @@ async def generate_replacements_with_gemini(
     }}
     """
 
-    # Models list prioritizing available Gemini 2.5 and 2.0 options
+    # Models list prioritizing available stable Gemini 1.5 options
     models_to_try = [
-        'gemini-2.5-flash',
-        'gemini-2.0-flash', 
-        'gemini-2.0-flash-lite', 
-        'gemini-2.5-pro',
-        'gemini-2.0-pro-exp-02-05'
+        'gemini-1.5-pro',
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-8b',
+        'gemini-pro'
     ]
     
     last_error = None
@@ -153,8 +152,12 @@ async def generate_replacements_with_gemini(
                 generation_config={"response_mime_type": "application/json"}
             )
             # Make the API call asynchronous if the SDK supports it, or wrap in a thread block
+            import asyncio
             # For genai, generate_content_async is supported
-            response = await model.generate_content_async(prompt)
+            response = await asyncio.wait_for(
+                model.generate_content_async(prompt),
+                timeout=30.0
+            )
             
             raw_text = response.text.strip()
             if raw_text.startswith("```json"):

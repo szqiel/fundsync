@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import Dashboard from "@/components/Dashboard";
 import { AlchemyChamber } from "@/components/AlchemyChamber";
+import { AgenticFeed } from "@/components/AgenticFeed";
 
 // Framer Motion configuration variants
 const fadeInUpVariants: Variants = {
@@ -303,136 +304,171 @@ export default function Home() {
 
               <motion.div 
                 variants={fadeInUpVariants}
-                className="w-full grid grid-cols-1 md:grid-cols-2 bg-white border border-[#EAEAEA] shadow-[0_2px_10px_rgba(0,0,0,0.01)] min-h-[420px]"
+                className="w-full max-w-[800px] bg-white border border-[#EAEAEA] shadow-[0_2px_10px_rgba(0,0,0,0.01)] flex flex-col overflow-hidden"
               >
-                {/* Left: Upload */}
+                {/* Magic Dropzone */}
                 <motion.div 
-                  whileHover={{ backgroundColor: "#FBFBFA" }}
-                  className="border-r border-[#EAEAEA] flex flex-col items-center justify-center p-12 bg-[#FBFBFA]/50 relative group cursor-pointer transition-colors"
+                  layout
+                  className={`relative p-12 flex flex-col items-center justify-center transition-colors ${file ? "bg-[#FBFBFA]/30 border-b border-[#EAEAEA] cursor-default" : "bg-[#FBFBFA]/50 hover:bg-[#F0EFEA]/50 min-h-[350px] cursor-pointer"}`}
                 >
-                  <input 
-                    type="file" 
-                    accept=".pptx"
-                    required
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  />
-                  <div className="w-16 h-16 bg-[#F0EFEA] rounded-xl flex items-center justify-center mb-6">
-                    <Upload className="w-6 h-6 text-[#757968]" strokeWidth={1.5} />
-                  </div>
-                  <h3 className="font-serif text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-playfair-display), serif" }}>Drop Pitch Deck</h3>
-                  <p className="text-[#757968] text-center mb-6 text-sm max-w-[240px] leading-relaxed">
-                    Upload your master .pptx template here to begin synthesis.
-                  </p>
-                  <div className="bg-[#EAE8E0] text-[#757968] font-mono text-xs px-3 py-1 rounded tracking-wider uppercase">
-                    {file ? file.name : "MAX 15MB"}
-                  </div>
+                  {!file && (
+                    <input 
+                      type="file" 
+                      accept=".pptx"
+                      required
+                      onChange={(e) => setFile(e.target.files?.[0] || null)}
+                      className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                    />
+                  )}
+                  {!file ? (
+                    <>
+                      <div className="w-20 h-20 bg-[#F0EFEA] rounded-2xl flex items-center justify-center mb-8">
+                        <Upload className="w-8 h-8 text-[#757968]" strokeWidth={1.5} />
+                      </div>
+                      <h3 className="font-serif text-3xl font-bold mb-4 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>Drop your Master Deck</h3>
+                      <p className="text-[#757968] text-center text-md max-w-[340px] leading-relaxed mb-8">
+                        Upload your master .pptx template to begin synthesis.
+                      </p>
+                      <div className="bg-[#EAE8E0] text-[#757968] font-mono text-[10px] font-bold px-3 py-1.5 rounded tracking-widest uppercase">
+                        MAX 15MB
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-[#CFEE91]/30 rounded-xl flex items-center justify-center">
+                          <Check className="w-5 h-5 text-[#476501]" />
+                        </div>
+                        <div className="text-left">
+                          <h4 className="font-bold text-[#111111]">{file.name}</h4>
+                          <p className="text-xs text-[#757968] font-mono mt-1 tracking-wider uppercase">{(file.size / 1024 / 1024).toFixed(2)} MB • READY</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={(e) => { e.preventDefault(); setFile(null); }}
+                        className="relative z-20 text-xs font-mono text-[#757968] hover:text-[#111111] underline tracking-widest uppercase font-bold"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  )}
                 </motion.div>
 
-                {/* Right: URL & Submit Form */}
-                <form onSubmit={handleProposeReplacements} className="p-12 flex flex-col h-full justify-between space-y-6">
-                  <div className="space-y-6">
-                    <div>
-                      <div className="mb-4 text-xs font-mono tracking-widest text-[#757968] uppercase">
-                        Target Sponsor Intel
+                {/* Morphing URL Input (Only visible after file drop) */}
+                <AnimatePresence>
+                  {file && (
+                    <motion.form 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      onSubmit={handleProposeReplacements} 
+                      className="px-12 py-10 flex flex-col space-y-8 bg-white"
+                    >
+                      <div>
+                        <div className="mb-4 text-xs font-mono tracking-widest text-[#757968] uppercase font-bold">
+                          Target Sponsor Intel
+                        </div>
+                        <div className="relative border-b border-[#EAEAEA] pb-4 flex items-center gap-4 group-focus-within:border-[#476501] transition-colors">
+                          <Link2 className="w-6 h-6 text-[#757968]" strokeWidth={1.5} />
+                          <input
+                            type="url"
+                            placeholder="https://sponsor-website.com"
+                            value={url}
+                            onChange={(e) => setUrl(e.target.value)}
+                            required
+                            className="w-full outline-none bg-transparent placeholder-[#B0B0A8] text-[#111111] text-xl"
+                          />
+                        </div>
                       </div>
-                      <div className="relative border-b border-[#EAEAEA] pb-3 flex items-center gap-4 group-focus-within:border-[#476501] transition-colors">
-                        <Link2 className="w-5 h-5 text-[#757968]" strokeWidth={1.5} />
-                        <input
-                          type="url"
-                          placeholder="https://sponsor-website.com"
-                          value={url}
-                          onChange={(e) => setUrl(e.target.value)}
-                          required
-                          className="w-full outline-none bg-transparent placeholder-[#B0B0A8] text-[#111111] text-md"
-                        />
-                      </div>
-                    </div>
 
-                    {/* Collapsible Tonal Alignment panel inside guest flow */}
-                    <div className="border border-[#EAEAEA] p-4 rounded-sm bg-[#FBFBFA]/30">
-                      <button
-                        type="button"
-                        onClick={() => setIsTonePanelOpen(!isTonePanelOpen)}
-                        className="w-full flex items-center justify-between text-[11px] font-mono tracking-widest text-[#757968] uppercase font-bold focus:outline-none"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Sliders className="w-4 h-4" />
-                          Tonal Alignment sliders
-                        </span>
-                        {isTonePanelOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                      </button>
-
-                      {isTonePanelOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          className="pt-4 mt-4 border-t border-[#EAEAEA] space-y-4"
+                      {/* Advanced Tuning Accordion */}
+                      <div className="border border-[#EAEAEA] p-5 rounded-sm bg-[#FBFBFA]/50 relative z-20">
+                        <button
+                          type="button"
+                          onClick={() => setIsTonePanelOpen(!isTonePanelOpen)}
+                          className="w-full flex items-center justify-between text-[11px] font-mono tracking-widest text-[#757968] uppercase font-bold focus:outline-none"
                         >
-                          {/* Tone Sliders */}
-                          <div className="space-y-3">
-                            <div className="flex justify-between text-[10px] font-mono">
-                              <span className="text-[#757968]">Creative</span>
-                              <span className="font-bold text-[#111111]">
-                                {toneFormal < 35 ? "Narrative" : toneFormal > 65 ? "Corporate" : "Balanced"}
-                              </span>
-                              <span className="text-[#757968]">Formal</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={toneFormal}
-                              onChange={(e) => setToneFormal(parseInt(e.target.value, 10))}
-                              className="w-full h-1 bg-[#F0EFEA] rounded-lg appearance-none cursor-pointer accent-[#476501]"
-                            />
-                          </div>
+                          <span className="flex items-center gap-2">
+                            <Sliders className="w-4 h-4" />
+                            Advanced AI Tuning
+                          </span>
+                          {isTonePanelOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                        </button>
 
-                          <div className="space-y-3">
-                            <div className="flex justify-between text-[10px] font-mono">
-                              <span className="text-[#757968]">CSR / Community</span>
-                              <span className="font-bold text-[#111111]">
-                                {toneTechnical < 35 ? "Social" : toneTechnical > 65 ? "Tech" : "Balanced"}
-                              </span>
-                              <span className="text-[#757968]">Technical</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="0"
-                              max="100"
-                              value={toneTechnical}
-                              onChange={(e) => setToneTechnical(parseInt(e.target.value, 10))}
-                              className="w-full h-1 bg-[#F0EFEA] rounded-lg appearance-none cursor-pointer accent-[#476501]"
-                            />
-                          </div>
+                        <AnimatePresence>
+                          {isTonePanelOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="pt-6 mt-6 border-t border-[#EAEAEA] space-y-6 overflow-hidden"
+                            >
+                              {/* Tone Sliders */}
+                              <div className="space-y-4">
+                                <div className="flex justify-between text-[11px] font-mono">
+                                  <span className="text-[#757968] uppercase tracking-wider">Creative</span>
+                                  <span className="font-bold text-[#476501] uppercase tracking-wider">
+                                    {toneFormal < 35 ? "Narrative" : toneFormal > 65 ? "Corporate" : "Balanced"}
+                                  </span>
+                                  <span className="text-[#757968] uppercase tracking-wider">Formal</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={toneFormal}
+                                  onChange={(e) => setToneFormal(parseInt(e.target.value, 10))}
+                                  className="w-full h-1.5 bg-[#EAEAEA] rounded-lg appearance-none cursor-pointer accent-[#476501]"
+                                />
+                              </div>
 
-                          <div className="space-y-1.5">
-                            <label className="text-[9px] font-mono text-[#757968] tracking-widest uppercase block">
-                              Custom directive
-                            </label>
-                            <textarea
-                              placeholder="Focus alignment directives here..."
-                              value={customFocus}
-                              onChange={(e) => setCustomFocus(e.target.value)}
-                              rows={2}
-                              className="w-full p-2 bg-white border border-[#EAEAEA] text-xs text-[#111111] focus:border-[#476501] outline-none resize-none font-sans"
-                            />
-                          </div>
-                        </motion.div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <motion.button 
-                    whileTap={{ scale: 0.97 }}
-                    type="submit"
-                    disabled={!file || !url}
-                    className="w-full bg-[#1A1C15] text-white h-16 flex items-center justify-center gap-3 hover:bg-[#2F3129] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <span className="font-serif text-2xl tracking-wide" style={{ fontFamily: "var(--font-playfair-display), serif" }}>Sync Pitch</span>
-                    <Sparkles className="w-5 h-5" strokeWidth={1.5} />
-                  </motion.button>
-                </form>
+                              <div className="space-y-4">
+                                <div className="flex justify-between text-[11px] font-mono">
+                                  <span className="text-[#757968] uppercase tracking-wider">CSR / Community</span>
+                                  <span className="font-bold text-[#476501] uppercase tracking-wider">
+                                    {toneTechnical < 35 ? "Social" : toneTechnical > 65 ? "Tech" : "Balanced"}
+                                  </span>
+                                  <span className="text-[#757968] uppercase tracking-wider">Technical</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={toneTechnical}
+                                  onChange={(e) => setToneTechnical(parseInt(e.target.value, 10))}
+                                  className="w-full h-1.5 bg-[#EAEAEA] rounded-lg appearance-none cursor-pointer accent-[#476501]"
+                                />
+                              </div>
+
+                              <div className="space-y-2 pt-2">
+                                <label className="text-[10px] font-mono text-[#757968] tracking-widest uppercase block font-bold">
+                                  Custom directive
+                                </label>
+                                <textarea
+                                  placeholder="E.g., Focus alignment strictly on their Stripe integrations..."
+                                  value={customFocus}
+                                  onChange={(e) => setCustomFocus(e.target.value)}
+                                  rows={2}
+                                  className="w-full p-3 bg-white border border-[#EAEAEA] text-sm text-[#111111] focus:border-[#476501] outline-none resize-none font-sans shadow-sm"
+                                />
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                      
+                      <motion.button 
+                        whileTap={{ scale: 0.98 }}
+                        type="submit"
+                        disabled={!file || !url}
+                        className="w-full bg-[#476501] text-white h-16 flex items-center justify-center gap-3 hover:bg-[#5f7f1f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md rounded-sm mt-4"
+                      >
+                        <span className="font-serif text-2xl tracking-wide font-bold" style={{ fontFamily: "var(--font-playfair-display), serif" }}>Generate Pitch</span>
+                        <Sparkles className="w-5 h-5" strokeWidth={2} />
+                      </motion.button>
+                    </motion.form>
+                  )}
+                </AnimatePresence>
               </motion.div>
               
               <motion.div 
@@ -473,73 +509,7 @@ export default function Home() {
                 {logStage >= 2 && "Synthesizing copies using Gemini tone controls..."}
               </p>
 
-              {/* Progress Stepper */}
-              <div className="w-full bg-white border border-[#EAEAEA] p-8 shadow-[0_4px_20px_rgba(0,0,0,0.01)] rounded-sm space-y-6 text-left">
-                {/* Step 1: Text extraction */}
-                <div className="flex items-center gap-4">
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 ${
-                    logStage >= 1 
-                      ? "bg-[#476501] text-white" 
-                      : "border-2 border-[#476501] text-[#476501] animate-pulse"
-                  }`}>
-                    {logStage >= 1 ? "✓" : "1"}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className={`text-sm font-bold ${logStage >= 1 ? "text-[#111111]" : "text-[#476501]"}`}>
-                      Extract Presentation Copy
-                    </h4>
-                    <p className="text-xs text-[#757968] mt-0.5">
-                      Recurse through shapes, tables, and grouped boxes.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Step 2: Firecrawl scraping */}
-                <div className="flex items-center gap-4">
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 ${
-                    logStage >= 2 
-                      ? "bg-[#476501] text-white" 
-                      : logStage === 1
-                        ? "border-2 border-[#476501] text-[#476501] animate-pulse"
-                        : "border-2 border-[#EAEAEA] text-[#B0B0A8]"
-                  }`}>
-                    {logStage >= 2 ? "✓" : "2"}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className={`text-sm font-bold ${
-                      logStage >= 2 ? "text-[#111111]" : logStage === 1 ? "text-[#476501]" : "text-[#B0B0A8]"
-                    }`}>
-                      Scrape Target Sponsor
-                    </h4>
-                    <p className="text-xs text-[#757968] mt-0.5">
-                      Scan URL context parameters for values and mandates.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Step 3: Gemini copywriting */}
-                <div className="flex items-center gap-4">
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 ${
-                    logStage >= 3 
-                      ? "bg-[#476501] text-white" 
-                      : logStage >= 2
-                        ? "border-2 border-[#476501] text-[#476501] animate-pulse"
-                        : "border-2 border-[#EAEAEA] text-[#B0B0A8]"
-                  }`}>
-                    {logStage >= 3 ? "✓" : "3"}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className={`text-sm font-bold ${
-                      logStage >= 3 ? "text-[#111111]" : logStage >= 2 ? "text-[#476501]" : "text-[#B0B0A8]"
-                    }`}>
-                      Gemini Tonal Synthesis
-                    </h4>
-                    <p className="text-xs text-[#757968] mt-0.5">
-                      Apply copywriting guidelines and output modifications mapping.
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <AgenticFeed logStage={logStage} />
             </motion.div>
           )}
 
