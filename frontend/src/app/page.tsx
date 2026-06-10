@@ -64,7 +64,16 @@ export default function Home() {
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        let errMsg = "Error processing deck.";
+        try {
+          const errData = await response.json();
+          errMsg = errData.detail || errMsg;
+        } catch {
+          try {
+            errMsg = await response.text() || errMsg;
+          } catch {}
+        }
+        throw new Error(errMsg);
       }
 
       const count = response.headers.get("X-Replacements-Count") || "0";
@@ -79,9 +88,9 @@ export default function Home() {
       setDownloadUrl(tempDownloadUrl);
       setAppState("success");
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Processing failed:", error);
-      alert("Error processing deck. Please check if the FastAPI backend is running.");
+      toast.error(error.message || "Error processing deck. Please check if the FastAPI backend is running.");
       setAppState("idle");
     }
   };
