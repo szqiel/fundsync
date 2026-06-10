@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+from pydantic import BaseModel
 from pptx_engine import replace_text_in_pptx, validate_pptx, extract_text_from_pptx
 from ai_engine import scrape_target_url, generate_replacements_with_gemini
 
@@ -42,7 +43,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["X-Replacements-Count", "X-Slides-Modified"],
+    expose_headers=["X-Replacements-Count", "X-Slides-Modified", "Content-Disposition"],
 )
 
 os.makedirs("tmp", exist_ok=True)
@@ -56,27 +57,31 @@ def cleanup_temp_files(*file_paths):
         except Exception as e:
             print(f"Error cleaning up {path}: {e}")
 
-# --- Step 2.1: FastAPI multipart/form-data POST endpoint ---
-@app.post("/api/process-deck")
-async def process_deck(
-    background_tasks: BackgroundTasks,
+# --- Phase 2: Two-Phase Endpoints ---
+
+class CompileRequest(BaseModel):
+    session_id: str
+    replacements: dict
+
+@app.post("/api/propose-replacements")
+async def propose_replacements(
     file: UploadFile = File(...),
     target_url: str = Form(...),
-    test_replacements: str = Form(default="{}") 
+    tone_formal: int = Form(50),
+    tone_technical: int = Form(50),
+    custom_focus: str = Form("")
 ):
     if not file.filename.endswith(".pptx"):
         raise HTTPException(status_code=400, detail="Invalid file type. Only .pptx is allowed.")
 
     session_id = str(uuid.uuid4())
     input_path = f"tmp/input_{session_id}.pptx"
-    output_path = f"tmp/output_{session_id}.pptx"
 
     try:
         # Save uploaded file to disk
         with open(input_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        # --- Phase 3: AI & Context Integration ---
         # 1. Extract text from the uploaded Master Deck
         presentation_text = extract_text_from_pptx(input_path)
         
@@ -84,16 +89,46 @@ async def process_deck(
         sponsor_context = await scrape_target_url(target_url)
         
         # 3. Call Gemini to map replacements
-        replacements = await generate_replacements_with_gemini(presentation_text, sponsor_context)
+        replacements = await generate_replacements_with_gemini(
+            presentation_text, 
+            sponsor_context,
+            tone_formal=tone_formal,
+            tone_technical=tone_technical,
+            custom_focus=custom_focus
+        )
         
-        # Fallback to test_replacements if Gemini is not configured or failed
+        # If Gemini fails, return empty proposed replacements
         if not replacements:
-            try:
-                replacements = json.loads(test_replacements)
-            except json.JSONDecodeError:
-                replacements = {}
+            replacements = {}
             
-        # --- Phase 2: Document Engine Execution ---
+        return {
+            "session_id": session_id,
+            "proposed_replacements": replacements,
+            "sponsor_context": sponsor_context
+        }
+
+    except Exception as e:
+        cleanup_temp_files(input_path)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/compile-deck")
+async def compile_deck(
+    request: CompileRequest,
+    background_tasks: BackgroundTasks
+):
+    session_id = request.session_id
+    replacements = request.replacements
+
+    input_path = f"tmp/input_{session_id}.pptx"
+    output_path = f"tmp/output_{session_id}.pptx"
+
+    if not os.path.exists(input_path):
+        raise HTTPException(
+            status_code=400, 
+            detail="Session expired or file not found. Please upload the pitch deck again."
+        )
+
+    try:
         # 4. Process the presentation via the document engine
         replacements_made, slides_modified = replace_text_in_pptx(input_path, output_path, replacements)
 
@@ -112,15 +147,15 @@ async def process_deck(
         
         return FileResponse(
             path=output_path, 
-            filename=f"FundSync_{file.filename}", 
+            filename=f"FundSync_personalized.pptx", 
             media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
             headers=headers
         )
 
     except HTTPException as he:
-        # Also clean up on error if files were created
         cleanup_temp_files(input_path, output_path)
         raise he
     except Exception as e:
         cleanup_temp_files(input_path, output_path)
         raise HTTPException(status_code=500, detail=str(e))
+
