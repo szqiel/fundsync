@@ -445,40 +445,98 @@ export default function Home() {
             </motion.div>
           )}
 
-          {/* STATE: FETCHING PROPOSALS (TERMINAL VIEW) */}
+          {/* STATE: FETCHING PROPOSALS (MODERN STEPPER LOADING CIRCLES) */}
           {appState === "fetching" && (
             <motion.div 
               key="fetching"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              className="w-full max-w-[800px] flex flex-col items-center"
+              className="w-full max-w-[650px] flex flex-col items-center py-12"
             >
-              <h1 className="text-4xl font-serif font-bold tracking-tight mb-2 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                Analyzing Outreach
-              </h1>
-              <p className="text-[#44493A] mb-12 text-center text-sm">
-                Evaluating deck copies and scraping sponsor website data.
+              {/* Spinning Circular Progress */}
+              <div className="relative w-32 h-32 mb-10 flex items-center justify-center">
+                {/* Outer spin ring */}
+                <div className="absolute w-full h-full rounded-full border-4 border-[#EAEAEA] border-t-[#476501] animate-spin" />
+                {/* Inner pulse circle */}
+                <div className="absolute w-20 h-20 rounded-full bg-[#CFEE91]/20 animate-pulse flex items-center justify-center">
+                  <Sparkles className="w-8 h-8 text-[#476501]" />
+                </div>
+              </div>
+
+              <h2 className="text-3xl font-serif font-bold tracking-tight mb-2 text-[#111111] text-center" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
+                Personalizing Pitch
+              </h2>
+              <p className="text-[#757968] mb-12 text-center text-sm font-mono max-w-[420px]">
+                {logStage === 0 && "Decomposing slide paragraph layers recursively..."}
+                {logStage === 1 && "Scraping target sponsor context data via Firecrawl..."}
+                {logStage >= 2 && "Synthesizing copies using Gemini tone controls..."}
               </p>
 
-              <div className="w-full bg-[#2F3129] rounded-lg overflow-hidden shadow-2xl border border-[#44493A]">
-                <div className="h-10 bg-[#1A1C15] flex items-center px-4 gap-2 border-b border-[#2F3129] relative">
-                  <div className="w-3 h-3 rounded-full bg-[#ED6A5E]"></div>
-                  <div className="w-3 h-3 rounded-full bg-[#F4BF4F]"></div>
-                  <div className="w-3 h-3 rounded-full bg-[#61C554]"></div>
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="font-mono text-xs text-[#757968]">fundsync_guest_process.sh</span>
+              {/* Progress Stepper */}
+              <div className="w-full bg-white border border-[#EAEAEA] p-8 shadow-[0_4px_20px_rgba(0,0,0,0.01)] rounded-sm space-y-6 text-left">
+                {/* Step 1: Text extraction */}
+                <div className="flex items-center gap-4">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 ${
+                    logStage >= 1 
+                      ? "bg-[#476501] text-white" 
+                      : "border-2 border-[#476501] text-[#476501] animate-pulse"
+                  }`}>
+                    {logStage >= 1 ? "✓" : "1"}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className={`text-sm font-bold ${logStage >= 1 ? "text-[#111111]" : "text-[#476501]"}`}>
+                      Extract Presentation Copy
+                    </h4>
+                    <p className="text-xs text-[#757968] mt-0.5">
+                      Recurse through shapes, tables, and grouped boxes.
+                    </p>
                   </div>
                 </div>
-                <div className="p-8 min-h-[350px] font-mono text-[13px] text-[#EAE8E0] flex flex-col gap-4 leading-relaxed">
-                  <p className="opacity-100">{">"} Requesting workspace session token...</p>
-                  {logStage >= 1 && <p className="animate-in fade-in slide-in-from-bottom-1">{">"} Decomposing slide paragraph layers recursively...</p>}
-                  {logStage >= 2 && <p className="animate-in fade-in slide-in-from-bottom-1">{">"} Scraped sponsor URL context via Firecrawl...</p>}
-                  {logStage >= 3 && <p className="animate-in fade-in slide-in-from-bottom-1 text-[#CFEE91]">{">"} Gemini analysis completed successfully. Synthesizing replacements...</p>}
-                  
-                  <div className="mt-auto flex gap-3 items-center text-[#CFEE91]">
-                    <span>{">"}</span>
-                    <span className="w-2.5 h-[18px] bg-[#CFEE91] animate-pulse"></span>
+
+                {/* Step 2: Firecrawl scraping */}
+                <div className="flex items-center gap-4">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 ${
+                    logStage >= 2 
+                      ? "bg-[#476501] text-white" 
+                      : logStage === 1
+                        ? "border-2 border-[#476501] text-[#476501] animate-pulse"
+                        : "border-2 border-[#EAEAEA] text-[#B0B0A8]"
+                  }`}>
+                    {logStage >= 2 ? "✓" : "2"}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className={`text-sm font-bold ${
+                      logStage >= 2 ? "text-[#111111]" : logStage === 1 ? "text-[#476501]" : "text-[#B0B0A8]"
+                    }`}>
+                      Scrape Target Sponsor
+                    </h4>
+                    <p className="text-xs text-[#757968] mt-0.5">
+                      Scan URL context parameters for values and mandates.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Step 3: Gemini copywriting */}
+                <div className="flex items-center gap-4">
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold shrink-0 ${
+                    logStage >= 3 
+                      ? "bg-[#476501] text-white" 
+                      : logStage >= 2
+                        ? "border-2 border-[#476501] text-[#476501] animate-pulse"
+                        : "border-2 border-[#EAEAEA] text-[#B0B0A8]"
+                  }`}>
+                    {logStage >= 3 ? "✓" : "3"}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className={`text-sm font-bold ${
+                      logStage >= 3 ? "text-[#111111]" : logStage >= 2 ? "text-[#476501]" : "text-[#B0B0A8]"
+                    }`}>
+                      Gemini Tonal Synthesis
+                    </h4>
+                    <p className="text-xs text-[#757968] mt-0.5">
+                      Apply copywriting guidelines and output modifications mapping.
+                    </p>
                   </div>
                 </div>
               </div>

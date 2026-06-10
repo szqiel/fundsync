@@ -117,10 +117,13 @@ async def generate_replacements_with_gemini(
     ---
 
     Identify which of these paragraphs can be customized to appeal to the sponsor. 
-    Examples of what to personalize:
-    - Replace placeholder text like "{{SPONSOR_NAME}}", "[Sponsor Name]", or any obvious placeholders.
-    - Rewrite descriptions of the event or partnership opportunities to align with the sponsor's tech stack or social causes.
-    - Keep the rewritten version approximately the same length as the original to prevent layout breakages in the slide.
+
+    CRITICAL LENGTH & QUALITY CONSTRAINTS:
+    - To prevent presentation layout breakages, the character count of each rewritten value (value) MUST NOT exceed 1.15x (115%) of the character count of its original paragraph (key).
+    - Maintain a character count within 90% to 110% of the original text.
+    - Avoid verbose introductions, extra sentences, or conversational explanations.
+    - Keep the personalized version extremely concise and of similar visual length.
+    - If you cannot customize a paragraph within this strict length constraint, do NOT include it in the returned JSON (omit the key entirely). Do not return keys mapped to unchanged text.
 
     You MUST return a JSON object mapping the EXACT original paragraph (keys) to your newly rewritten paragraph (values).
     The keys in the JSON object MUST exactly match a string from the Master Pitch Deck list above, character-for-character, including spacing and punctuation.

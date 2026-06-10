@@ -208,31 +208,54 @@ export function AlchemyChamber({
                   <motion.div
                     key={row.id}
                     layout
-                    className={`bg-white border transition-all p-5 shadow-[0_1px_3px_rgba(0,0,0,0.01)] ${
+                    className={`border transition-all p-6 relative rounded-sm ${
                       row.selected 
-                        ? "border-[#EAEAEA] focus-within:border-[#476501]/30" 
-                        : "border-[#EAEAEA] opacity-65 bg-[#FBFBFA]/50"
+                        ? "border-[#476501]/40 bg-white shadow-[0_4px_16px_rgba(71,101,1,0.04)]" 
+                        : "border-[#EAEAEA] bg-[#FAF9F6]/40 opacity-70"
                     }`}
                   >
                     {/* Row Header toolbar */}
-                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#F5F5F3]">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-[#F5F5F3]">
                       <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => handleToggleSelect(row.id)}
-                          className="flex items-center gap-1.5 text-xs font-mono font-bold text-[#111111]"
-                        >
-                          {row.selected ? (
-                            <CheckSquare className="w-4 h-4 text-[#476501]" strokeWidth={2.5} />
-                          ) : (
-                            <Square className="w-4 h-4 text-[#B0B0A8]" strokeWidth={1.5} />
-                          )}
-                          <span className={row.selected ? "text-[#476501]" : "text-[#757968]"}>
-                            {row.selected ? "SELECTED" : "EXCLUDED"}
-                          </span>
-                        </button>
+                        {/* Segmented control buttons */}
+                        <div className="flex border border-[#EAEAEA] rounded overflow-hidden shadow-xs">
+                          <button
+                            type="button"
+                            onClick={() => setRows(prev => prev.map(r => r.id === row.id ? { ...r, selected: false } : r))}
+                            className={`px-3 py-1.5 text-[10px] font-mono font-bold transition-all flex items-center gap-1.5 ${
+                              !row.selected 
+                                ? "bg-[#757968] text-white" 
+                                : "bg-white text-[#757968] hover:bg-[#FBFBFA]"
+                            }`}
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            Keep Original
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRows(prev => prev.map(r => r.id === row.id ? { ...r, selected: true } : r))}
+                            className={`px-3 py-1.5 text-[10px] font-mono font-bold transition-all flex items-center gap-1.5 ${
+                              row.selected 
+                                ? "bg-[#476501] text-white" 
+                                : "bg-white text-[#757968] hover:bg-[#FBFBFA]"
+                            }`}
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            Apply Suggestion
+                          </button>
+                        </div>
+
+                        {/* Status Badge */}
+                        <span className={`text-[9px] font-mono font-bold px-2.5 py-1 tracking-wider uppercase rounded-sm ${
+                          row.selected 
+                            ? "bg-[#476501]/10 text-[#476501]" 
+                            : "bg-[#757968]/10 text-[#757968]"
+                        }`}>
+                          {row.selected ? "Applying Personalization" : "Keeping Original Copy"}
+                        </span>
                       </div>
 
-                      <div className="flex items-center gap-2 text-[10px] font-mono">
+                      <div className="flex items-center gap-3 text-[10px] font-mono">
                         {row.selected && row.current !== row.proposed && (
                           <button
                             onClick={() => handleResetRow(row.id)}
@@ -240,26 +263,26 @@ export function AlchemyChamber({
                             title="Reset to Gemini proposal"
                           >
                             <RotateCcw className="w-3 h-3" />
-                            REVERT
+                            REVERT TO SUGGESTION
                           </button>
                         )}
                       </div>
                     </div>
 
                     {/* Side-by-Side Diff */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Left: Original */}
-                      <div className="space-y-1.5">
-                        <span className="text-[9px] font-mono tracking-widest text-[#757968] uppercase font-bold">
-                          Original presentation
+                      <div className="space-y-2">
+                        <span className="text-[9px] font-mono tracking-widest text-[#757968] uppercase font-bold block">
+                          Original presentation text
                         </span>
-                        <div className="p-3 bg-[#FAF9F5] border border-[#F0EFEA] text-xs leading-relaxed text-[#44493A] font-mono select-none">
+                        <div className="p-3 bg-[#FBFBFA] border border-[#F0EFEA] text-xs leading-relaxed text-[#55594e] font-sans rounded-sm select-none">
                           {row.original}
                         </div>
                       </div>
 
                       {/* Right: Proposal (Editable) */}
-                      <div className="space-y-1.5">
+                      <div className="space-y-2">
                         <span className="text-[9px] font-mono tracking-widest text-[#476501] uppercase font-bold flex items-center justify-between">
                           <span>Personalized proposal</span>
                           <span className="font-normal font-mono text-[9px] text-[#757968] lowercase">
@@ -270,12 +293,12 @@ export function AlchemyChamber({
                           value={row.current}
                           onChange={(e) => handleTextChange(row.id, e.target.value)}
                           disabled={!row.selected}
-                          className={`w-full p-3 text-xs leading-relaxed font-sans focus:outline-none transition-colors border ${
+                          className={`w-full p-3 text-xs leading-relaxed font-sans focus:outline-none transition-all border rounded-sm ${
                             !row.selected 
                               ? "bg-transparent border-[#EAEAEA] text-[#757968] resize-none" 
                               : isTooLong
-                                ? "bg-white border-[#E4A11B] text-[#111111] focus:border-[#E4A11B]"
-                                : "bg-white border-[#EAEAEA] text-[#111111] focus:border-[#476501]"
+                                ? "bg-white border-[#E4A11B] text-[#111111] focus:border-[#E4A11B] focus:ring-1 focus:ring-[#E4A11B]"
+                                : "bg-white border-[#EAEAEA] text-[#111111] focus:border-[#476501] focus:ring-1 focus:ring-[#476501]"
                           }`}
                           rows={3}
                         />
@@ -284,11 +307,12 @@ export function AlchemyChamber({
 
                     {/* Layout Overflow Alerts */}
                     {row.selected && isTooLong && (
-                      <div className="mt-3 bg-[#FEF9EC] border border-[#FCE8B2] px-3 py-2 flex items-center gap-2 text-[10px] font-mono text-[#8C7A5C] leading-none">
-                        <AlertTriangle className="w-3.5 h-3.5 text-[#E4A11B] shrink-0" />
-                        <span>
-                          Warning: Text is {percentIncrease}% longer than original. This might distort formatting layouts inside PPTX slides.
-                        </span>
+                      <div className="mt-4 bg-[#FEF9EC] border border-[#FCE8B2] px-4 py-3 flex items-start gap-2 text-xs font-mono text-[#8C7A5C] leading-normal rounded-sm">
+                        <AlertTriangle className="w-4 h-4 text-[#E4A11B] shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold block mb-0.5">Potential Slide Overflow Warning</span>
+                          Text is {percentIncrease}% longer than original (+{currentLength - originalLength} characters). This might break formatting on standard slide boxes. Try shortening the copy.
+                        </div>
                       </div>
                     )}
                   </motion.div>
