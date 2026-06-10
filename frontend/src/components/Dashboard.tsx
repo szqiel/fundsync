@@ -144,7 +144,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       if (error) throw error;
       setDecks(data || []);
     } catch (err: any) {
-      console.error("Error fetching decks:", err);
+      console.error("Error fetching decks:", err?.message || err);
+      console.dir(err);
       toast.error("Failed to load decks from Database.");
     }
   };
@@ -185,7 +186,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       if (error) throw error;
       setSponsors(data || []);
     } catch (err: any) {
-      console.error("Error fetching sponsors:", err);
+      console.error("Error fetching sponsors:", err?.message || err);
+      console.dir(err);
     }
   };
 
@@ -213,7 +215,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       if (error) throw error;
       setHistory(data || []);
     } catch (err: any) {
-      console.error("Error fetching history:", err);
+      console.error("Error fetching history:", err?.message || err);
+      console.dir(err);
     }
   };
 
