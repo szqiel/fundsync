@@ -1,10 +1,10 @@
 import os
-import requests
+import httpx
 import json
 import google.generativeai as genai
 from typing import Dict, List
 
-def scrape_target_url(url: str) -> str:
+async def scrape_target_url(url: str) -> str:
     """
     Scrape the sponsor URL using Firecrawl API, with a Safe Mode Fallback.
     """
@@ -21,47 +21,46 @@ def scrape_target_url(url: str) -> str:
 
     try:
         # Support V1 endpoint as primary, fallback to V0 if needed
-        response = requests.post(
-            "https://api.firecrawl.dev/v1/scrape",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            },
-            json={"url": url, "formats": ["markdown"]},
-            timeout=15
-        )
-        if response.status_code == 404:
-            # Fallback to V0
-            response = requests.post(
-                "https://api.firecrawl.dev/v0/scrape",
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(
+                "https://api.firecrawl.dev/v1/scrape",
                 headers={
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json"
                 },
-                json={"url": url},
-                timeout=15
+                json={"url": url, "formats": ["markdown"]}
             )
+            if response.status_code == 404:
+                # Fallback to V0
+                response = await client.post(
+                    "https://api.firecrawl.dev/v0/scrape",
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={"url": url}
+                )
+                
+            response.raise_for_status()
+            data = response.json()
             
-        response.raise_for_status()
-        data = response.json()
-        
-        # Parse based on V1 or V0 response structure
-        content = ""
-        if "data" in data:
-            content = data["data"].get("markdown", "") or data["data"].get("content", "")
-        elif "markdown" in data:
-            content = data["markdown"]
-            
-        if not content:
-            print("Firecrawl returned empty content. Using fallback.")
-            return fallback_string
-            
-        return content[:8000]  # Limit context size to prevent prompt bloating
+            # Parse based on V1 or V0 response structure
+            content = ""
+            if "data" in data:
+                content = data["data"].get("markdown", "") or data["data"].get("content", "")
+            elif "markdown" in data:
+                content = data["markdown"]
+                
+            if not content:
+                print("Firecrawl returned empty content. Using fallback.")
+                return fallback_string
+                
+            return content[:8000]  # Limit context size to prevent prompt bloating
     except Exception as e:
         print(f"Firecrawl scraping failed: {e}. Injecting safe mode fallback.")
         return fallback_string
 
-def generate_replacements_with_gemini(presentation_paragraphs: List[str], sponsor_context: str) -> Dict[str, str]:
+async def generate_replacements_with_gemini(presentation_paragraphs: List[str], sponsor_context: str) -> Dict[str, str]:
     """
     Feed presentation paragraphs and scraped sponsor context to Gemini to get a strict JSON mapping.
     """
@@ -121,8 +120,19 @@ def generate_replacements_with_gemini(presentation_paragraphs: List[str], sponso
                 model_name, 
                 generation_config={"response_mime_type": "application/json"}
             )
-            response = model.generate_content(prompt)
-            replacements = json.loads(response.text)
+            # Make the API call asynchronous if the SDK supports it, or wrap in a thread block
+            # For genai, generate_content_async is supported
+            response = await model.generate_content_async(prompt)
+            
+            raw_text = response.text.strip()
+            if raw_text.startswith("```json"):
+                raw_text = raw_text[7:]
+            elif raw_text.startswith("```"):
+                raw_text = raw_text[3:]
+            if raw_text.endswith("```"):
+                raw_text = raw_text[:-3]
+                
+            replacements = json.loads(raw_text.strip())
             print(f"Gemini {model_name} successfully generated {len(replacements)} replacements.")
             return replacements
         except Exception as e:

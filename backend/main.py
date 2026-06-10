@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form, Request, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, Request, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -47,9 +47,19 @@ app.add_middleware(
 
 os.makedirs("tmp", exist_ok=True)
 
+def cleanup_temp_files(*file_paths):
+    for path in file_paths:
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+                print(f"Cleaned up {path}")
+        except Exception as e:
+            print(f"Error cleaning up {path}: {e}")
+
 # --- Step 2.1: FastAPI multipart/form-data POST endpoint ---
 @app.post("/api/process-deck")
 async def process_deck(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     target_url: str = Form(...),
     test_replacements: str = Form(default="{}") 
@@ -71,10 +81,10 @@ async def process_deck(
         presentation_text = extract_text_from_pptx(input_path)
         
         # 2. Scrape the Sponsor URL (includes Safe Mode fallback)
-        sponsor_context = scrape_target_url(target_url)
+        sponsor_context = await scrape_target_url(target_url)
         
         # 3. Call Gemini to map replacements
-        replacements = generate_replacements_with_gemini(presentation_text, sponsor_context)
+        replacements = await generate_replacements_with_gemini(presentation_text, sponsor_context)
         
         # Fallback to test_replacements if Gemini is not configured or failed
         if not replacements:
@@ -97,6 +107,9 @@ async def process_deck(
             "X-Slides-Modified": str(slides_modified)
         }
         
+        # Add background task to clean up files after the response is sent
+        background_tasks.add_task(cleanup_temp_files, input_path, output_path)
+        
         return FileResponse(
             path=output_path, 
             filename=f"FundSync_{file.filename}", 
@@ -105,6 +118,9 @@ async def process_deck(
         )
 
     except HTTPException as he:
+        # Also clean up on error if files were created
+        cleanup_temp_files(input_path, output_path)
         raise he
     except Exception as e:
+        cleanup_temp_files(input_path, output_path)
         raise HTTPException(status_code=500, detail=str(e))

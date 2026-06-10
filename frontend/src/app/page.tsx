@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Upload, Link2, Sparkles, Download, Check, Lock } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence, Variants } from "framer-motion";
+import { toast } from "sonner";
 
 // Framer Motion configuration variants
 const fadeInUpVariants: Variants = {

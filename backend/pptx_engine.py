@@ -41,8 +41,8 @@ def normalize_text(text: str) -> str:
 def replace_text_in_pptx(input_path: str, output_path: str, replacements: dict) -> Tuple[int, int]:
     """
     Ingests a .pptx file, iterates through all shapes recursively, and replaces text.
-    First tries run-level replacement to preserve local formatting. If the text is split across runs,
-    falls back to paragraph-level replacement.
+    First tries run-level replacement to preserve local formatting and hyperlinks. 
+    If the text is split across runs, falls back to merging runs at paragraph level.
     If exact matches fail, falls back to normalized paragraph comparison.
     Returns a tuple of (total_replacements_made, total_slides_modified).
     """
@@ -67,7 +67,11 @@ def replace_text_in_pptx(input_path: str, output_path: str, replacements: dict) 
                         replaced_at_run_level = False
                         for run in paragraph.runs:
                             if old_text in run.text:
+                                # Preserve hyperlinks
+                                hlink = run.hyperlink.address if run.hyperlink and run.hyperlink.address else None
                                 run.text = run.text.replace(old_text, new_text)
+                                if hlink:
+                                    run.hyperlink.address = hlink
                                 replaced_at_run_level = True
                                 replacements_made += 1
                                 slide_had_replacement = True
@@ -75,14 +79,43 @@ def replace_text_in_pptx(input_path: str, output_path: str, replacements: dict) 
                                 break
                         
                         if not replaced_at_run_level:
-                            paragraph.text = paragraph.text.replace(old_text, new_text)
+                            # Merge runs: If it spans multiple runs, merge into the first run to preserve base formatting
+                            hlink = paragraph.runs[0].hyperlink.address if paragraph.runs and paragraph.runs[0].hyperlink and paragraph.runs[0].hyperlink.address else None
+                            full_text = paragraph.text
+                            # Remove all runs except the first
+                            for i in range(len(paragraph.runs) - 1, 0, -1):
+                                p = paragraph._p
+                                p.remove(paragraph.runs[i]._r)
+                                
+                            if paragraph.runs:
+                                run = paragraph.runs[0]
+                                run.text = full_text.replace(old_text, new_text)
+                                if hlink:
+                                    run.hyperlink.address = hlink
+                            else:
+                                paragraph.text = full_text.replace(old_text, new_text)
+                                
                             replacements_made += 1
                             slide_had_replacement = True
-                            print(f"[Exact Match - Paragraph] Replaced: '{old_text}' -> '{new_text}'")
+                            print(f"[Exact Match - Merged Runs] Replaced: '{old_text}' -> '{new_text}'")
                             
                     # 2. Try normalized paragraph comparison fallback (full match)
                     elif normalize_text(old_text) == normalize_text(paragraph.text):
-                        paragraph.text = new_text
+                        hlink = paragraph.runs[0].hyperlink.address if paragraph.runs and paragraph.runs[0].hyperlink and paragraph.runs[0].hyperlink.address else None
+                        
+                        # Remove extra runs
+                        for i in range(len(paragraph.runs) - 1, 0, -1):
+                            p = paragraph._p
+                            p.remove(paragraph.runs[i]._r)
+                            
+                        if paragraph.runs:
+                            run = paragraph.runs[0]
+                            run.text = new_text
+                            if hlink:
+                                run.hyperlink.address = hlink
+                        else:
+                            paragraph.text = new_text
+                            
                         replacements_made += 1
                         slide_had_replacement = True
                         print(f"[Normalized Fallback] Replaced paragraph: '{paragraph.text}' -> '{new_text}'")
