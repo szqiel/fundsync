@@ -117,6 +117,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
   const [slidesModifiedCount, setSlidesModifiedCount] = useState(0);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [processingFileUrl, setProcessingFileUrl] = useState<string>("");
+  const [processingFileName, setProcessingFileName] = useState<string>("");
 
   // Search & Filter
   const [sponsorSearch, setSponsorSearch] = useState("");
@@ -423,6 +424,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     setIsProcessing(true);
     setProcessingState("fetching");
     setProcessingFileUrl(fileUrlToSend);
+    setProcessingFileName(selectedDeckName);
+    setSessionId(crypto.randomUUID());
 
     const formData = new FormData();
     formData.append("file_url", fileUrlToSend);
@@ -520,6 +523,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
         body: JSON.stringify({
           session_id: sessionId,
           file_url: processingFileUrl,
+          original_filename: processingFileName,
           replacements: finalReplacements
         })
       });

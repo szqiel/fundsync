@@ -168,6 +168,7 @@ async def propose_replacements(
 class CompileRequest(BaseModel):
     session_id: str
     file_url: str
+    original_filename: str = ""
     replacements: dict
 
 @app.post("/api/compile-deck")
@@ -199,7 +200,16 @@ async def compile_deck(
             raise HTTPException(status_code=500, detail="Supabase not configured.")
             
         output_buffer.seek(0)
-        output_filename = f"generated/{uuid.uuid4()}_FundSync.pptx"
+        
+        # Clean the original filename for the final output
+        import re
+        safe_name = re.sub(r'[^A-Za-z0-9_\-\.]', '_', request.original_filename)
+        if safe_name.lower().endswith(".pptx"):
+            safe_name = safe_name[:-5]
+        if not safe_name:
+            safe_name = "FundSync_Generated"
+            
+        output_filename = f"generated/{uuid.uuid4().hex[:8]}_{safe_name}_Personalized.pptx"
         
         res = supabase_client.storage.from_("master-decks").upload(
             output_filename, 
