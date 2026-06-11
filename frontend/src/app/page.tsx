@@ -1,9 +1,26 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Upload, Link2, Sparkles, Download, Check, Lock } from "lucide-react";
+import { 
+  Upload, 
+  Link2, 
+  Sparkles, 
+  Download, 
+  Check, 
+  Lock, 
+  Sliders, 
+  ChevronDown, 
+  ChevronRight, 
+  Loader2, 
+  UserPlus 
+} from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence, Variants } from "framer-motion";
+import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import Dashboard from "@/components/Dashboard";
+import { AlchemyChamber } from "@/components/AlchemyChamber";
+import { AgenticFeed } from "@/components/AgenticFeed";
 
 // Framer Motion configuration variants
 const fadeInUpVariants: Variants = {
@@ -26,44 +43,143 @@ const staggerContainer: Variants = {
 };
 
 export default function Home() {
-  const [appState, setAppState] = useState<"idle" | "processing" | "success">("idle");
+  // Auth state
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // App / Personalization state
+  const [appState, setAppState] = useState<"idle" | "fetching" | "alchemy" | "compiling" | "success">("idle");
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState("");
+  
+  // Tonal states
+  const [toneFormal, setToneFormal] = useState(50);
+  const [toneTechnical, setToneTechnical] = useState(50);
+  const [customFocus, setCustomFocus] = useState("");
+  const [isTonePanelOpen, setIsTonePanelOpen] = useState(false);
+
+  // Proposed changes cache
+  const [proposedReplacements, setProposedReplacements] = useState<Record<string, string>>({});
+  const [sessionId, setSessionId] = useState("");
+  const [scrapedContext, setScrapedContext] = useState("");
+
+  // Result Metrics
   const [replacementsCount, setReplacementsCount] = useState(0);
   const [slidesModifiedCount, setSlidesModifiedCount] = useState(0);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [logStage, setLogStage] = useState(0);
 
+  // Load user session
   useEffect(() => {
-    if (appState === "processing") {
+    const getSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user ?? null);
+      } catch (err) {
+        console.error("Auth check error, running in local fallback guest mode.", err);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+    getSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Animate log stages during backend communication
+  useEffect(() => {
+    if (appState === "fetching") {
       setLogStage(0);
       const timers = [
-        setTimeout(() => setLogStage(1), 1500),
-        setTimeout(() => setLogStage(2), 3500),
-        setTimeout(() => setLogStage(3), 6000),
+        setTimeout(() => setLogStage(1), 1000),
+        setTimeout(() => setLogStage(2), 2500),
+        setTimeout(() => setLogStage(3), 4000),
       ];
       return () => timers.forEach(clearTimeout);
     }
   }, [appState]);
 
-  const handleProcessDeck = async (e: React.FormEvent) => {
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      toast.success("Successfully logged out of workspace.");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to logout.");
+    }
+  };
+
+  // Phase 1: Propose replacements
+  const handleProposeReplacements = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !url) return;
     
-    setAppState("processing");
+    setAppState("fetching");
     
     const formData = new FormData();
     formData.append("file", file);
     formData.append("target_url", url);
+    formData.append("tone_formal", String(toneFormal));
+    formData.append("tone_technical", String(toneTechnical));
+    formData.append("custom_focus", customFocus);
 
     try {
-      const response = await fetch("http://localhost:8000/api/process-deck", {
+      const response = await fetch("http://localhost:8000/api/propose-replacements", {
         method: "POST",
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        let errMsg = "Error processing replacements.";
+        try {
+          const errData = await response.json();
+          errMsg = errData.detail || errMsg;
+        } catch {
+          try {
+            errMsg = await response.text() || errMsg;
+          } catch {}
+        }
+        throw new Error(errMsg);
+      }
+
+      const data = await response.json();
+      setProposedReplacements(data.proposed_replacements);
+      setSessionId(data.session_id);
+      setScrapedContext(data.sponsor_context);
+      setAppState("alchemy");
+
+    } catch (error: any) {
+      console.error("Propose replacements failed:", error);
+      toast.error(error.message || "Failed to contact AI. Please verify that the FastAPI backend is running.");
+      setAppState("idle");
+    }
+  };
+
+  // Phase 2: Compile final presentation
+  const handleCompileDeck = async (finalReplacements: Record<string, string>) => {
+    setAppState("compiling");
+
+    try {
+      const response = await fetch("http://localhost:8000/api/compile-deck", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          session_id: sessionId,
+          replacements: finalReplacements
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to compile deck. Session may have expired.");
       }
 
       const count = response.headers.get("X-Replacements-Count") || "0";
@@ -78,10 +194,10 @@ export default function Home() {
       setDownloadUrl(tempDownloadUrl);
       setAppState("success");
 
-    } catch (error) {
-      console.error("Processing failed:", error);
-      alert("Error processing deck. Please check if the FastAPI backend is running.");
-      setAppState("idle");
+    } catch (error: any) {
+      console.error("Compile failed:", error);
+      toast.error(error.message || "Error compiling file. Please try again.");
+      setAppState("alchemy");
     }
   };
 
@@ -92,8 +208,49 @@ export default function Home() {
     setDownloadUrl(null);
     setReplacementsCount(0);
     setSlidesModifiedCount(0);
+    setProposedReplacements({});
+    setSessionId("");
+    setCustomFocus("");
+    setToneFormal(50);
+    setToneTechnical(50);
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#F9F8F6] flex flex-col items-center justify-center font-sans">
+        <Loader2 className="w-10 h-10 text-[#476501] animate-spin mb-4" />
+        <span className="font-mono text-xs text-[#757968] tracking-widest uppercase">
+          Loading secure workspace...
+        </span>
+      </div>
+    );
+  }
+
+  // Auth gate render
+  if (user) {
+    return (
+      <div className="min-h-screen bg-[#F9F8F6] flex flex-col font-sans text-[#1A1A1A]">
+        {/* Top Navbar */}
+        <header className="w-full flex items-center justify-between px-8 py-6 border-b border-[#EAEAEA] bg-[#FBFBFA]/80 backdrop-blur-md sticky top-0 z-50">
+          <div 
+            onClick={resetState}
+            className="font-serif font-bold text-2xl text-[#476501] cursor-pointer hover:opacity-85 transition-opacity" 
+            style={{ fontFamily: "var(--font-playfair-display), serif" }}
+          >
+            FundSync
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="bg-[#476501]/10 text-[#476501] font-mono text-[10px] font-bold px-2 py-1 tracking-wider uppercase rounded-sm">
+              Member Workspace
+            </span>
+          </div>
+        </header>
+        <Dashboard user={user} onLogout={handleLogout} />
+      </div>
+    );
+  }
+
+  // Guest flow render
   return (
     <div className="min-h-screen bg-[#F9F8F6] flex flex-col font-sans text-[#1A1A1A] selection:bg-[#CFEE91] selection:text-[#476501]">
       {/* Top Navbar */}
@@ -108,18 +265,19 @@ export default function Home() {
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-[#44493a]">
           <Link href="/about" className="hover:text-[#476501] transition-colors">About</Link>
         </nav>
-        <motion.button 
-          whileTap={{ scale: 0.97 }}
-          onClick={resetState}
-          className="bg-[#476501] text-white px-6 py-2.5 rounded hover:bg-[#5f7f1f] transition-colors text-sm font-medium focus:outline-none"
-        >
-          Get Started
-        </motion.button>
+        <Link href="/auth">
+          <motion.button 
+            whileTap={{ scale: 0.97 }}
+            className="bg-[#476501] hover:bg-[#5f7f1f] text-white px-6 py-2.5 rounded-sm transition-colors text-sm font-medium focus:outline-none flex items-center gap-2 shadow-sm font-mono text-xs font-bold"
+          >
+            <UserPlus className="w-4 h-4" /> MEMBER SIGN IN
+          </motion.button>
+        </Link>
       </header>
 
-      <main className="flex-1 flex flex-col items-center pt-20 px-4 pb-24">
+      <main className="flex-1 flex flex-col items-center pt-12 px-4 pb-24 max-w-[1200px] w-full mx-auto">
         <AnimatePresence mode="wait">
-          {/* STATE: IDLE */}
+          {/* STATE: IDLE (GUEST FORM) */}
           {appState === "idle" && (
             <motion.div 
               key="idle"
@@ -131,7 +289,7 @@ export default function Home() {
             >
               <motion.h1 
                 variants={fadeInUpVariants}
-                className="text-[56px] font-serif font-bold tracking-tight mb-4 text-[#111111] text-center" 
+                className="text-[54px] font-serif font-bold tracking-tight mb-4 text-[#111111] text-center leading-[1.1]" 
                 style={{ fontFamily: "var(--font-playfair-display), serif" }}
               >
                 Sync your outreach.
@@ -139,69 +297,178 @@ export default function Home() {
               
               <motion.p 
                 variants={fadeInUpVariants}
-                className="text-[#44493A] text-lg mb-16 max-w-[600px] text-center leading-relaxed"
+                className="text-[#44493A] text-md mb-12 max-w-[550px] text-center leading-relaxed"
               >
-                Transform standard pitch decks into targeted, hyper-personalized sponsor communications in seconds.
+                Transform standard pitch decks into targeted, hyper-personalized sponsor communications in seconds using dynamic tonal alignment.
               </motion.p>
 
               <motion.div 
                 variants={fadeInUpVariants}
-                className="w-full grid grid-cols-1 md:grid-cols-2 bg-white border border-[#EAEAEA] shadow-[0_2px_10px_rgba(0,0,0,0.02)] min-h-[400px]"
+                className="w-full max-w-[800px] bg-white border border-[#EAEAEA] shadow-[0_2px_10px_rgba(0,0,0,0.01)] flex flex-col overflow-hidden"
               >
-                {/* Left: Upload */}
+                {/* Magic Dropzone */}
                 <motion.div 
-                  whileHover={{ backgroundColor: "#FBFBFA" }}
-                  className="border-r border-[#EAEAEA] flex flex-col items-center justify-center p-12 bg-[#FBFBFA]/50 relative group cursor-pointer transition-colors"
+                  layout
+                  className={`relative p-12 flex flex-col items-center justify-center transition-colors ${file ? "bg-[#FBFBFA]/30 border-b border-[#EAEAEA] cursor-default" : "bg-[#FBFBFA]/50 hover:bg-[#F0EFEA]/50 min-h-[350px] cursor-pointer"}`}
                 >
-                  <input 
-                    type="file" 
-                    accept=".pptx"
-                    required
-                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                    className="absolute inset-0 opacity-0 cursor-pointer"
-                  />
-                  <div className="w-16 h-16 bg-[#F0EFEA] rounded-xl flex items-center justify-center mb-6">
-                    <Upload className="w-6 h-6 text-[#757968]" strokeWidth={1.5} />
-                  </div>
-                  <h3 className="font-serif text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-playfair-display), serif" }}>Drop Pitch Deck</h3>
-                  <p className="text-[#757968] text-center mb-6 text-sm max-w-[240px]">
-                    Upload your master .pptx file here to begin synthesis.
-                  </p>
-                  <div className="bg-[#EAE8E0] text-[#757968] font-mono text-xs px-3 py-1 rounded tracking-wider uppercase">
-                    {file ? file.name : "MAX 15MB"}
-                  </div>
+                  {!file && (
+                    <input 
+                      type="file" 
+                      accept=".pptx"
+                      required
+                      onChange={(e) => setFile(e.target.files?.[0] || null)}
+                      className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                    />
+                  )}
+                  {!file ? (
+                    <>
+                      <div className="w-20 h-20 bg-[#F0EFEA] rounded-2xl flex items-center justify-center mb-8">
+                        <Upload className="w-8 h-8 text-[#757968]" strokeWidth={1.5} />
+                      </div>
+                      <h3 className="font-serif text-3xl font-bold mb-4 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>Drop your Master Deck</h3>
+                      <p className="text-[#757968] text-center text-md max-w-[340px] leading-relaxed mb-8">
+                        Upload your master .pptx template to begin synthesis.
+                      </p>
+                      <div className="bg-[#EAE8E0] text-[#757968] font-mono text-[10px] font-bold px-3 py-1.5 rounded tracking-widest uppercase">
+                        MAX 15MB
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-[#CFEE91]/30 rounded-xl flex items-center justify-center">
+                          <Check className="w-5 h-5 text-[#476501]" />
+                        </div>
+                        <div className="text-left">
+                          <h4 className="font-bold text-[#111111]">{file.name}</h4>
+                          <p className="text-xs text-[#757968] font-mono mt-1 tracking-wider uppercase">{(file.size / 1024 / 1024).toFixed(2)} MB • READY</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={(e) => { e.preventDefault(); setFile(null); }}
+                        className="relative z-20 text-xs font-mono text-[#757968] hover:text-[#111111] underline tracking-widest uppercase font-bold"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  )}
                 </motion.div>
 
-                {/* Right: URL & Submit */}
-                <form onSubmit={handleProcessDeck} className="p-12 flex flex-col h-full">
-                  <div className="mb-8 text-xs font-mono tracking-widest text-[#757968] uppercase">
-                    Target Sponsor Intel
-                  </div>
-                  <div className="relative border-b border-[#EAEAEA] mb-8 pb-4 flex items-center gap-4 group-focus-within:border-[#476501] transition-colors">
-                    <Link2 className="w-5 h-5 text-[#757968]" strokeWidth={1.5} />
-                    <input
-                      type="url"
-                      placeholder="https://sponsor-website.com"
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                      required
-                      className="w-full outline-none bg-transparent placeholder-[#B0B0A8] text-[#111111] text-lg"
-                    />
-                  </div>
-                  <p className="text-[#757968] text-sm leading-relaxed mb-auto">
-                    Provide the target sponsor's primary URL. Our engine will extract mandate data, investment theses, and tonal alignment parameters.
-                  </p>
-                  
-                  <motion.button 
-                    whileTap={{ scale: 0.97 }}
-                    type="submit"
-                    disabled={!file || !url}
-                    className="w-full bg-[#1A1C15] text-white h-16 mt-8 flex items-center justify-center gap-3 hover:bg-[#2F3129] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <span className="font-serif text-2xl tracking-wide" style={{ fontFamily: "var(--font-playfair-display), serif" }}>Sync</span>
-                    <Sparkles className="w-5 h-5" strokeWidth={1.5} />
-                  </motion.button>
-                </form>
+                {/* Morphing URL Input (Only visible after file drop) */}
+                <AnimatePresence>
+                  {file && (
+                    <motion.form 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      onSubmit={handleProposeReplacements} 
+                      className="px-12 py-10 flex flex-col space-y-8 bg-white"
+                    >
+                      <div>
+                        <div className="mb-4 text-xs font-mono tracking-widest text-[#757968] uppercase font-bold">
+                          Target Sponsor Intel
+                        </div>
+                        <div className="relative border-b border-[#EAEAEA] pb-4 flex items-center gap-4 group-focus-within:border-[#476501] transition-colors">
+                          <Link2 className="w-6 h-6 text-[#757968]" strokeWidth={1.5} />
+                          <input
+                            type="url"
+                            placeholder="https://sponsor-website.com"
+                            value={url}
+                            onChange={(e) => setUrl(e.target.value)}
+                            required
+                            className="w-full outline-none bg-transparent placeholder-[#B0B0A8] text-[#111111] text-xl"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Advanced Tuning Accordion */}
+                      <div className="border border-[#EAEAEA] p-5 rounded-sm bg-[#FBFBFA]/50 relative z-20">
+                        <button
+                          type="button"
+                          onClick={() => setIsTonePanelOpen(!isTonePanelOpen)}
+                          className="w-full flex items-center justify-between text-[11px] font-mono tracking-widest text-[#757968] uppercase font-bold focus:outline-none"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Sliders className="w-4 h-4" />
+                            Advanced AI Tuning
+                          </span>
+                          {isTonePanelOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                        </button>
+
+                        <AnimatePresence>
+                          {isTonePanelOpen && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="pt-6 mt-6 border-t border-[#EAEAEA] space-y-6 overflow-hidden"
+                            >
+                              {/* Tone Sliders */}
+                              <div className="space-y-4">
+                                <div className="flex justify-between text-[11px] font-mono">
+                                  <span className="text-[#757968] uppercase tracking-wider">Creative</span>
+                                  <span className="font-bold text-[#476501] uppercase tracking-wider">
+                                    {toneFormal < 35 ? "Narrative" : toneFormal > 65 ? "Corporate" : "Balanced"}
+                                  </span>
+                                  <span className="text-[#757968] uppercase tracking-wider">Formal</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={toneFormal}
+                                  onChange={(e) => setToneFormal(parseInt(e.target.value, 10))}
+                                  className="w-full h-1.5 bg-[#EAEAEA] rounded-lg appearance-none cursor-pointer accent-[#476501]"
+                                />
+                              </div>
+
+                              <div className="space-y-4">
+                                <div className="flex justify-between text-[11px] font-mono">
+                                  <span className="text-[#757968] uppercase tracking-wider">CSR / Community</span>
+                                  <span className="font-bold text-[#476501] uppercase tracking-wider">
+                                    {toneTechnical < 35 ? "Social" : toneTechnical > 65 ? "Tech" : "Balanced"}
+                                  </span>
+                                  <span className="text-[#757968] uppercase tracking-wider">Technical</span>
+                                </div>
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={toneTechnical}
+                                  onChange={(e) => setToneTechnical(parseInt(e.target.value, 10))}
+                                  className="w-full h-1.5 bg-[#EAEAEA] rounded-lg appearance-none cursor-pointer accent-[#476501]"
+                                />
+                              </div>
+
+                              <div className="space-y-2 pt-2">
+                                <label className="text-[10px] font-mono text-[#757968] tracking-widest uppercase block font-bold">
+                                  Custom directive
+                                </label>
+                                <textarea
+                                  placeholder="E.g., Focus alignment strictly on their Stripe integrations..."
+                                  value={customFocus}
+                                  onChange={(e) => setCustomFocus(e.target.value)}
+                                  rows={2}
+                                  className="w-full p-3 bg-white border border-[#EAEAEA] text-sm text-[#111111] focus:border-[#476501] outline-none resize-none font-sans shadow-sm"
+                                />
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                      
+                      <motion.button 
+                        whileTap={{ scale: 0.98 }}
+                        type="submit"
+                        disabled={!file || !url}
+                        className="w-full bg-[#476501] text-white h-16 flex items-center justify-center gap-3 hover:bg-[#5f7f1f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md rounded-sm mt-4"
+                      >
+                        <span className="font-serif text-2xl tracking-wide font-bold" style={{ fontFamily: "var(--font-playfair-display), serif" }}>Generate Pitch</span>
+                        <Sparkles className="w-5 h-5" strokeWidth={2} />
+                      </motion.button>
+                    </motion.form>
+                  )}
+                </AnimatePresence>
               </motion.div>
               
               <motion.div 
@@ -209,53 +476,81 @@ export default function Home() {
                 className="mt-8 text-xs font-mono text-[#757968] flex items-center gap-2 tracking-widest uppercase"
               >
                 <Lock className="w-3.5 h-3.5" />
-                Enterprise-grade encryption on all uploaded assets.
+                Local browser encryption on guest resources.
               </motion.div>
             </motion.div>
           )}
 
-          {/* STATE: PROCESSING */}
-          {appState === "processing" && (
+          {/* STATE: FETCHING PROPOSALS (MODERN STEPPER LOADING CIRCLES) */}
+          {appState === "fetching" && (
             <motion.div 
-              key="processing"
+              key="fetching"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.3 }}
-              className="w-full max-w-[800px] flex flex-col items-center"
+              className="w-full max-w-[650px] flex flex-col items-center py-12"
             >
-              <h1 className="text-4xl font-serif font-bold tracking-tight mb-2 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                Processing Generation
-              </h1>
-              <p className="text-[#44493A] mb-12 text-center">
-                Please wait while we sync and compile your resources.
-              </p>
-
-              <div className="w-full bg-[#2F3129] rounded-lg overflow-hidden shadow-2xl border border-[#44493A]">
-                <div className="h-10 bg-[#1A1C15] flex items-center px-4 gap-2 border-b border-[#2F3129] relative">
-                  <div className="w-3 h-3 rounded-full bg-[#ED6A5E]"></div>
-                  <div className="w-3 h-3 rounded-full bg-[#F4BF4F]"></div>
-                  <div className="w-3 h-3 rounded-full bg-[#61C554]"></div>
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="font-mono text-xs text-[#757968]">fundsync_process_v2.4.sh</span>
-                  </div>
-                </div>
-                <div className="p-8 min-h-[400px] font-mono text-[13px] text-[#EAE8E0] flex flex-col gap-4 leading-relaxed">
-                  <p className="opacity-100">{">"} Initializing secure synthesis engine...</p>
-                  {logStage >= 1 && <p className="animate-in fade-in slide-in-from-bottom-1">{">"} Extracting semantic vectors from master presentation...</p>}
-                  {logStage >= 2 && <p className="animate-in fade-in slide-in-from-bottom-1">{">"} Scraping target CSR mandate and structural goals...</p>}
-                  {logStage >= 3 && <p className="animate-in fade-in slide-in-from-bottom-1 text-[#CFEE91]">{">"} Gemini synthesis complete. Patching XML layers...</p>}
-                  
-                  <div className="mt-auto flex gap-3 items-center text-[#CFEE91]">
-                    <span>{">"}</span>
-                    <span className="w-2.5 h-[18px] bg-[#CFEE91] animate-pulse"></span>
-                  </div>
+              {/* Spinning Circular Progress */}
+              <div className="relative w-32 h-32 mb-10 flex items-center justify-center">
+                {/* Outer spin ring */}
+                <div className="absolute w-full h-full rounded-full border-4 border-[#EAEAEA] border-t-[#476501] animate-spin" />
+                {/* Inner pulse circle */}
+                <div className="absolute w-20 h-20 rounded-full bg-[#CFEE91]/20 animate-pulse flex items-center justify-center">
+                  <Sparkles className="w-8 h-8 text-[#476501]" />
                 </div>
               </div>
+
+              <h2 className="text-3xl font-serif font-bold tracking-tight mb-2 text-[#111111] text-center" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
+                Personalizing Pitch
+              </h2>
+              <p className="text-[#757968] mb-12 text-center text-sm font-mono max-w-[420px]">
+                {logStage === 0 && "Decomposing slide paragraph layers recursively..."}
+                {logStage === 1 && "Scraping target sponsor context data via Firecrawl..."}
+                {logStage >= 2 && "Synthesizing copies using Gemini tone controls..."}
+              </p>
+
+              <AgenticFeed logStage={logStage} />
             </motion.div>
           )}
 
-          {/* STATE: SUCCESS */}
+          {/* STATE: ALCHEMY CHAMBER (DIFF EDITOR REVIEW) */}
+          {appState === "alchemy" && (
+            <motion.div
+              key="alchemy"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="w-full max-w-[1000px]"
+            >
+              <AlchemyChamber
+                proposedReplacements={proposedReplacements}
+                scrapedContext={scrapedContext}
+                onCancel={resetState}
+                onCompile={handleCompileDeck}
+              />
+            </motion.div>
+          )}
+
+          {/* STATE: COMPILING PITCH DECK */}
+          {appState === "compiling" && (
+            <motion.div
+              key="compiling"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center py-24"
+            >
+              <Loader2 className="w-12 h-12 text-[#476501] animate-spin mb-4" />
+              <h3 className="text-2xl font-serif font-bold text-[#111111] mb-2" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
+                Injecting customized variables and compiling...
+              </h3>
+              <p className="text-[#757968] text-xs font-mono">
+                Ensuring PPTX structure is uncorrupted and format fonts match.
+              </p>
+            </motion.div>
+          )}
+
+          {/* STATE: SUCCESS DOWNLOAD SCREEN */}
           {appState === "success" && (
             <motion.div 
               key="success"
@@ -277,33 +572,27 @@ export default function Home() {
                 className="text-5xl font-serif font-bold tracking-tight mb-4 text-[#111111]" 
                 style={{ fontFamily: "var(--font-playfair-display), serif" }}
               >
-                Personalization Complete.
+                Pitch Personalization Complete.
               </motion.h1>
               
               <motion.p 
                 variants={fadeInUpVariants}
-                className="text-[#44493A] text-lg mb-12 text-center max-w-[480px] leading-relaxed"
+                className="text-[#44493A] text-md mb-12 text-center max-w-[480px] leading-relaxed"
               >
-                Your presentation has been successfully adapted. Review the summary of changes below.
+                Your pitch deck has been recursively aligned. Download the customized file below.
               </motion.p>
 
               <motion.div 
                 variants={fadeInUpVariants}
-                className="w-full grid grid-cols-3 gap-3 mb-12"
+                className="w-full grid grid-cols-2 gap-4 mb-12"
               >
-                <div className="border border-[#EAEAEA] p-8 flex flex-col items-center justify-center text-center">
-                  <div className="text-3xl font-serif font-bold mb-3 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>{replacementsCount}</div>
-                  <div className="text-[10px] font-mono text-[#757968] tracking-widest uppercase leading-loose">Text Strings<br/>Adapted</div>
+                <div className="border border-[#EAEAEA] p-6 flex flex-col items-center justify-center text-center">
+                  <div className="text-3xl font-serif font-bold mb-2 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>{replacementsCount}</div>
+                  <div className="text-[10px] font-mono text-[#757968] tracking-widest uppercase">Text Strings Adapted</div>
                 </div>
-                <div className="border border-[#EAEAEA] bg-[#F4F4E8] p-8 flex flex-col items-center justify-center text-center">
-                  <div className="text-[#476501] mb-3">
-                    <Sparkles className="w-7 h-7" strokeWidth={1.5} />
-                  </div>
-                  <div className="text-[10px] font-mono text-[#476501] tracking-widest uppercase leading-loose">Brand Colors<br/>Matched<br/>To Sponsor</div>
-                </div>
-                <div className="border border-[#EAEAEA] p-8 flex flex-col items-center justify-center text-center">
-                  <div className="text-3xl font-serif font-bold mb-3 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>{slidesModifiedCount}</div>
-                  <div className="text-[10px] font-mono text-[#757968] tracking-widest uppercase leading-loose">Slides<br/>Modified</div>
+                <div className="border border-[#EAEAEA] p-6 flex flex-col items-center justify-center text-center">
+                  <div className="text-3xl font-serif font-bold mb-2 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>{slidesModifiedCount}</div>
+                  <div className="text-[10px] font-mono text-[#757968] tracking-widest uppercase">Slides Modified</div>
                 </div>
               </motion.div>
 
@@ -311,11 +600,11 @@ export default function Home() {
                 variants={fadeInUpVariants}
                 whileTap={{ scale: 0.97 }}
                 href={downloadUrl || "#"}
-                download={`FundSync_${file?.name || "Targeted_Deck.pptx"}`}
-                className="w-full max-w-[400px] bg-[#2F3129] text-white h-14 flex items-center justify-center gap-3 hover:bg-[#1A1C15] transition-colors mb-8 rounded-md"
+                download={`FundSync_Personalized_Pitch.pptx`}
+                className="w-full max-w-[400px] bg-[#2F3129] text-white h-14 flex items-center justify-center gap-3 hover:bg-[#1A1C15] transition-colors mb-8 rounded-sm font-sans font-medium text-lg"
               >
                 <Download className="w-5 h-5" strokeWidth={2} />
-                <span className="font-sans font-medium text-lg">Download .pptx</span>
+                <span>Download Personalized PPTX</span>
               </motion.a>
               
               <motion.button 
@@ -324,7 +613,7 @@ export default function Home() {
                 onClick={resetState}
                 className="text-[#476501] font-mono text-xs uppercase tracking-widest hover:opacity-70 transition-opacity"
               >
-                Return to Dashboard
+                Start New Session
               </motion.button>
             </motion.div>
           )}
@@ -333,13 +622,12 @@ export default function Home() {
       
       {/* Footer */}
       {(appState === "idle" || appState === "success") && (
-        <footer className="w-full px-12 py-8 border-t border-[#EAEAEA] flex flex-col md:flex-row items-center justify-between font-mono text-xs text-[#111111] font-bold">
-          <div>© 2024 FundSync AI. All rights reserved.</div>
+        <footer className="w-full px-12 py-8 border-t border-[#EAEAEA] flex flex-col md:flex-row items-center justify-between font-mono text-xs text-[#111111] font-bold bg-[#FBFBFA]/30">
+          <div>© 2026 FundSync. All rights reserved.</div>
           <div className="flex items-center gap-6 mt-4 md:mt-0 font-medium text-[#757968]">
             <Link href="/about" className="hover:text-[#111111] transition-colors">About</Link>
             <a href="#" className="hover:text-[#111111] transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-[#111111] transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-[#111111] transition-colors">Contact</a>
           </div>
         </footer>
       )}

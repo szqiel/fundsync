@@ -1,10 +1,10 @@
 import os
-import requests
+import httpx
 import json
 import google.generativeai as genai
 from typing import Dict, List
 
-def scrape_target_url(url: str) -> str:
+async def scrape_target_url(url: str) -> str:
     """
     Scrape the sponsor URL using Firecrawl API, with a Safe Mode Fallback.
     """
@@ -21,49 +21,55 @@ def scrape_target_url(url: str) -> str:
 
     try:
         # Support V1 endpoint as primary, fallback to V0 if needed
-        response = requests.post(
-            "https://api.firecrawl.dev/v1/scrape",
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            },
-            json={"url": url, "formats": ["markdown"]},
-            timeout=15
-        )
-        if response.status_code == 404:
-            # Fallback to V0
-            response = requests.post(
-                "https://api.firecrawl.dev/v0/scrape",
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(
+                "https://api.firecrawl.dev/v1/scrape",
                 headers={
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json"
                 },
-                json={"url": url},
-                timeout=15
+                json={"url": url, "formats": ["markdown"]}
             )
+            if response.status_code == 404:
+                # Fallback to V0
+                response = await client.post(
+                    "https://api.firecrawl.dev/v0/scrape",
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={"url": url}
+                )
+                
+            response.raise_for_status()
+            data = response.json()
             
-        response.raise_for_status()
-        data = response.json()
-        
-        # Parse based on V1 or V0 response structure
-        content = ""
-        if "data" in data:
-            content = data["data"].get("markdown", "") or data["data"].get("content", "")
-        elif "markdown" in data:
-            content = data["markdown"]
-            
-        if not content:
-            print("Firecrawl returned empty content. Using fallback.")
-            return fallback_string
-            
-        return content[:8000]  # Limit context size to prevent prompt bloating
+            # Parse based on V1 or V0 response structure
+            content = ""
+            if "data" in data:
+                content = data["data"].get("markdown", "") or data["data"].get("content", "")
+            elif "markdown" in data:
+                content = data["markdown"]
+                
+            if not content:
+                print("Firecrawl returned empty content. Using fallback.")
+                return fallback_string
+                
+            return content[:8000]  # Limit context size to prevent prompt bloating
     except Exception as e:
         print(f"Firecrawl scraping failed: {e}. Injecting safe mode fallback.")
         return fallback_string
 
-def generate_replacements_with_gemini(presentation_paragraphs: List[str], sponsor_context: str) -> Dict[str, str]:
+async def generate_replacements_with_gemini(
+    presentation_paragraphs: List[str], 
+    sponsor_context: str,
+    tone_formal: int = 50,
+    tone_technical: int = 50,
+    custom_focus: str = ""
+) -> Dict[str, str]:
     """
-    Feed presentation paragraphs and scraped sponsor context to Gemini to get a strict JSON mapping.
+    Feed presentation paragraphs and scraped sponsor context to Gemini to get a strict JSON mapping,
+    adhering to custom tone and focus configurations.
     """
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -71,6 +77,23 @@ def generate_replacements_with_gemini(presentation_paragraphs: List[str], sponso
         return {}
 
     genai.configure(api_key=api_key)
+
+    # Formulate tone and priorities guidelines
+    tone_instructions = []
+    if tone_formal > 65:
+        tone_instructions.append("- Adopt a highly formal, executive, and professional vocabulary suitable for corporate stakeholders.")
+    elif tone_formal < 35:
+        tone_instructions.append("- Adopt a warm, creative, and narrative-driven tone.")
+        
+    if tone_technical > 65:
+        tone_instructions.append("- Emphasize technical robustness, technology stack integration, and developer outreach/benefits.")
+    elif tone_technical < 35:
+        tone_instructions.append("- Emphasize Corporate Social Responsibility (CSR), community impact, student mentorship, and public good.")
+        
+    if custom_focus:
+        tone_instructions.append(f"- Prioritize custom alignment goals: '{custom_focus}'.")
+        
+    tone_str = "\n".join(tone_instructions)
 
     # Format the paragraphs list so Gemini can easily identify exact matches
     paragraphs_json = json.dumps(presentation_paragraphs, indent=2)
@@ -83,16 +106,24 @@ def generate_replacements_with_gemini(presentation_paragraphs: List[str], sponso
     {sponsor_context}
     ---
 
+    Copywriting & Alignment Guidelines:
+    ---
+    {tone_str if tone_str else "Adapt the segments to align with the sponsor in a balanced, professional manner."}
+    ---
+
     Here is a list of exact text paragraphs extracted from the Master Pitch Deck:
     ---
     {paragraphs_json}
     ---
 
     Identify which of these paragraphs can be customized to appeal to the sponsor. 
-    Examples of what to personalize:
-    - Replace placeholder text like "{{SPONSOR_NAME}}", "[Sponsor Name]", or any obvious placeholders.
-    - Rewrite descriptions of the event or partnership opportunities to align with the sponsor's tech stack or social causes.
-    - Keep the rewritten version approximately the same length as the original to prevent layout breakages in the slide.
+
+    CRITICAL LENGTH & QUALITY CONSTRAINTS:
+    - To prevent presentation layout breakages, the character count of each rewritten value (value) MUST NOT exceed 1.15x (115%) of the character count of its original paragraph (key).
+    - Maintain a character count within 90% to 110% of the original text.
+    - Avoid verbose introductions, extra sentences, or conversational explanations.
+    - Keep the personalized version extremely concise and of similar visual length.
+    - If you cannot customize a paragraph within this strict length constraint, do NOT include it in the returned JSON (omit the key entirely). Do not return keys mapped to unchanged text.
 
     You MUST return a JSON object mapping the EXACT original paragraph (keys) to your newly rewritten paragraph (values).
     The keys in the JSON object MUST exactly match a string from the Master Pitch Deck list above, character-for-character, including spacing and punctuation.
@@ -104,13 +135,12 @@ def generate_replacements_with_gemini(presentation_paragraphs: List[str], sponso
     }}
     """
 
-    # Models list prioritizing available Gemini 2.5 and 2.0 options
+    # Models list prioritizing available stable Gemini 1.5 options
     models_to_try = [
-        'gemini-2.5-flash',
-        'gemini-2.0-flash', 
-        'gemini-2.0-flash-lite', 
-        'gemini-2.5-pro',
-        'gemini-2.0-pro-exp-02-05'
+        'gemini-1.5-pro',
+        'gemini-1.5-flash',
+        'gemini-1.5-flash-8b',
+        'gemini-pro'
     ]
     
     last_error = None
@@ -121,8 +151,23 @@ def generate_replacements_with_gemini(presentation_paragraphs: List[str], sponso
                 model_name, 
                 generation_config={"response_mime_type": "application/json"}
             )
-            response = model.generate_content(prompt)
-            replacements = json.loads(response.text)
+            # Make the API call asynchronous if the SDK supports it, or wrap in a thread block
+            import asyncio
+            # For genai, generate_content_async is supported
+            response = await asyncio.wait_for(
+                model.generate_content_async(prompt),
+                timeout=30.0
+            )
+            
+            raw_text = response.text.strip()
+            if raw_text.startswith("```json"):
+                raw_text = raw_text[7:]
+            elif raw_text.startswith("```"):
+                raw_text = raw_text[3:]
+            if raw_text.endswith("```"):
+                raw_text = raw_text[:-3]
+                
+            replacements = json.loads(raw_text.strip())
             print(f"Gemini {model_name} successfully generated {len(replacements)} replacements.")
             return replacements
         except Exception as e:
