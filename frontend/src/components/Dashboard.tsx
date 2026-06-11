@@ -525,7 +525,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to compile final deck. Cache might have expired.");
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(`Server Error: ${errJson.detail || response.statusText}`);
       }
 
       const responseData = await response.json();
@@ -810,7 +811,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                 </div>
               ) : (
                 /* STATE WORKFLOW */
-                <div className="w-full max-w-[1000px] mx-auto min-h-[500px]">
+                <div className="w-full max-w-[1000px] mx-auto h-[calc(100vh-12rem)] flex flex-col justify-center">
                   {processingState === "fetching" && (
                     <motion.div key="fetching" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="flex flex-col items-center py-20">
                       <motion.div variants={fadeInUp} className="relative w-24 h-24 mb-12 flex items-center justify-center">

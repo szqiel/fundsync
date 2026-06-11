@@ -22,9 +22,9 @@ from pydantic import BaseModel
 from pptx_engine import replace_text_in_pptx, validate_pptx, extract_text_from_pptx
 from ai_engine import scrape_target_url, generate_replacements_with_gemini
 
-# Initialize Supabase Admin Client
+# Initialize Supabase Admin Client (Service Role Key Bypasses RLS)
 supabase_url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "")
-supabase_key = os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY", "")
+supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY", ""))
 supabase_client: Client = create_client(supabase_url, supabase_key) if supabase_url else None
 
 # --- Step 2.2: Middleware for 15MB Size Limit ---
@@ -206,6 +206,10 @@ async def compile_deck(
             output_buffer.read(), 
             {"content-type": "application/vnd.openxmlformats-officedocument.presentationml.presentation"}
         )
+        
+        # Check if python supabase client returned an HTTP error (it usually returns response or throws)
+        if hasattr(res, 'status_code') and res.status_code >= 400:
+            raise HTTPException(status_code=500, detail=f"Supabase Upload Error: {res.text}. (Make sure SUPABASE_SERVICE_ROLE_KEY is in .env)")
         
         # 7. Get public URL
         public_url_data = supabase_client.storage.from_("master-decks").get_public_url(output_filename)
