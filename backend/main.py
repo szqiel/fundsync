@@ -112,26 +112,26 @@ def cleanup_temp_files(*file_paths):
         except Exception as e:
             print(f"Error cleaning up {path}: {e}")
 
-# --- Phase 2: Two-Phase Endpoints ---
+# --- Phase 1: Propose Replacements ---
+class ProposeRequest(BaseModel):
+    file_url: str
+    target_url: str
+    tone_formal: int = 50
+    tone_technical: int = 50
+    custom_focus: str = ""
 
 class CompileRequest(BaseModel):
     session_id: str
     replacements: dict
 
 @app.post("/api/propose-replacements")
-async def propose_replacements(
-    file_url: str = Form(...),
-    target_url: str = Form(...),
-    tone_formal: int = Form(50),
-    tone_technical: int = Form(50),
-    custom_focus: str = Form("")
-):
+async def propose_replacements(request: ProposeRequest):
     session_id = str(uuid.uuid4())
 
     try:
         # Download file directly into RAM
         async with httpx.AsyncClient() as client:
-            resp = await client.get(file_url)
+            resp = await client.get(request.file_url)
             if resp.status_code != 200:
                 raise HTTPException(status_code=400, detail="Failed to download file from Supabase.")
             file_buffer = io.BytesIO(resp.content)
@@ -142,15 +142,15 @@ async def propose_replacements(
         presentation_text = await asyncio.to_thread(run_extract)
         
         # 2. Scrape the Sponsor URL (includes Safe Mode fallback)
-        sponsor_context = await scrape_target_url(target_url)
+        sponsor_context = await scrape_target_url(request.target_url)
         
         # 3. Call Gemini to map replacements
         replacements = await generate_replacements_with_gemini(
             presentation_text, 
             sponsor_context,
-            tone_formal=tone_formal,
-            tone_technical=tone_technical,
-            custom_focus=custom_focus
+            tone_formal=request.tone_formal,
+            tone_technical=request.tone_technical,
+            custom_focus=request.custom_focus
         )
         
         # If Gemini fails, return empty proposed replacements
