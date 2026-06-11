@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, Form, Request, HTTPException, BackgroundTasks
+from fastapi import FastAPI, UploadFile, File, Form, Request, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -6,6 +6,7 @@ import os
 import shutil
 import uuid
 import json
+import re
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -22,9 +23,9 @@ from pydantic import BaseModel
 from pptx_engine import replace_text_in_pptx, validate_pptx, extract_text_from_pptx
 from ai_engine import scrape_target_url, generate_replacements_with_gemini
 
-# Initialize Supabase Admin Client
+# Initialize Supabase Admin Client (Service Role Key Bypasses RLS)
 supabase_url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "")
-supabase_key = os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY", "")
+supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY", ""))
 supabase_client: Client = create_client(supabase_url, supabase_key) if supabase_url else None
 
 # --- Step 2.2: Middleware for 15MB Size Limit ---
@@ -111,26 +112,26 @@ def cleanup_temp_files(*file_paths):
         except Exception as e:
             print(f"Error cleaning up {path}: {e}")
 
-# --- Phase 2: Two-Phase Endpoints ---
+# --- Phase 1: Propose Replacements ---
+class ProposeRequest(BaseModel):
+    file_url: str
+    target_url: str
+    tone_formal: int = 50
+    tone_technical: int = 50
+    custom_focus: str = ""
 
 class CompileRequest(BaseModel):
     session_id: str
     replacements: dict
 
 @app.post("/api/propose-replacements")
-async def propose_replacements(
-    file_url: str = Form(...),
-    target_url: str = Form(...),
-    tone_formal: int = Form(50),
-    tone_technical: int = Form(50),
-    custom_focus: str = Form("")
-):
+async def propose_replacements(request: ProposeRequest):
     session_id = str(uuid.uuid4())
 
     try:
         # Download file directly into RAM
         async with httpx.AsyncClient() as client:
-            resp = await client.get(file_url)
+            resp = await client.get(request.file_url)
             if resp.status_code != 200:
                 raise HTTPException(status_code=400, detail="Failed to download file from Supabase.")
             file_buffer = io.BytesIO(resp.content)
@@ -141,15 +142,15 @@ async def propose_replacements(
         presentation_text = await asyncio.to_thread(run_extract)
         
         # 2. Scrape the Sponsor URL (includes Safe Mode fallback)
-        sponsor_context = await scrape_target_url(target_url)
+        sponsor_context = await scrape_target_url(request.target_url)
         
         # 3. Call Gemini to map replacements
         replacements = await generate_replacements_with_gemini(
             presentation_text, 
             sponsor_context,
-            tone_formal=tone_formal,
-            tone_technical=tone_technical,
-            custom_focus=custom_focus
+            tone_formal=request.tone_formal,
+            tone_technical=request.tone_technical,
+            custom_focus=request.custom_focus
         )
         
         # If Gemini fails, return empty proposed replacements
@@ -165,9 +166,31 @@ async def propose_replacements(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/upload-guest")
+async def upload_guest(file: UploadFile = File(...)):
+    if not supabase_client:
+        raise HTTPException(status_code=500, detail="Supabase not configured.")
+    
+    file_content = await file.read()
+    if len(file_content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Guest demo files are limited to 5MB. Please log in for larger files.")
+        
+    safe_name = re.sub(r'[^A-Za-z0-9_\-\.]', '_', file.filename)
+    path = f"guest/{uuid.uuid4().hex[:8]}_{safe_name}"
+    
+    res = supabase_client.storage.from_("master-decks").upload(path, file_content, {"content-type": "application/vnd.openxmlformats-officedocument.presentationml.presentation"})
+    if hasattr(res, 'status_code') and res.status_code >= 400:
+        raise HTTPException(status_code=500, detail=f"Supabase Upload Error: {res.text}")
+        
+    url_data = supabase_client.storage.from_("master-decks").get_public_url(path)
+    public_url = url_data if isinstance(url_data, str) else url_data.get("publicUrl")
+    
+    return {"file_url": public_url}
+
 class CompileRequest(BaseModel):
     session_id: str
     file_url: str
+    original_filename: str = ""
     replacements: dict
 
 @app.post("/api/compile-deck")
@@ -184,6 +207,7 @@ async def compile_deck(
 
         # 4. Process the presentation via the document engine
         def run_engine():
+            print(f"DEBUG: Compile Deck Replacements received: {len(request.replacements)}")
             return replace_text_in_pptx(input_buffer, request.replacements)
             
         replacements_made, slides_modified, output_buffer = await asyncio.to_thread(run_engine)
@@ -199,13 +223,26 @@ async def compile_deck(
             raise HTTPException(status_code=500, detail="Supabase not configured.")
             
         output_buffer.seek(0)
-        output_filename = f"generated/{uuid.uuid4()}_FundSync.pptx"
+        
+        # Clean the original filename for the final output
+        import re
+        safe_name = re.sub(r'[^A-Za-z0-9_\-\.]', '_', request.original_filename)
+        if safe_name.lower().endswith(".pptx"):
+            safe_name = safe_name[:-5]
+        if not safe_name:
+            safe_name = "FundSync_Generated"
+            
+        output_filename = f"generated/{uuid.uuid4().hex[:8]}_{safe_name}_Personalized.pptx"
         
         res = supabase_client.storage.from_("master-decks").upload(
             output_filename, 
             output_buffer.read(), 
             {"content-type": "application/vnd.openxmlformats-officedocument.presentationml.presentation"}
         )
+        
+        # Check if python supabase client returned an HTTP error (it usually returns response or throws)
+        if hasattr(res, 'status_code') and res.status_code >= 400:
+            raise HTTPException(status_code=500, detail=f"Supabase Upload Error: {res.text}. (Make sure SUPABASE_SERVICE_ROLE_KEY is in .env)")
         
         # 7. Get public URL
         public_url_data = supabase_client.storage.from_("master-decks").get_public_url(output_filename)
@@ -258,6 +295,10 @@ async def generate_thumbnail(
                 }
             })
             
+            if 'id' not in job:
+                print(f"CloudConvert Error: {job}")
+                raise RuntimeError(f"CloudConvert API rejected the job: {job.get('message', 'Unknown error')}")
+                
             job_result = cloudconvert.Job.wait(id=job['id'])
             
             for task in job_result['tasks']:

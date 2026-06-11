@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import { 
   Folder, 
   Database, 
@@ -18,25 +18,26 @@ import {
   ChevronDown, 
   FileText, 
   Check, 
-  Plus, 
   Sliders, 
-  HelpCircle,
   AlertTriangle,
   Lock,
   ArrowRight,
-  Loader2
+  Loader2,
+  LayoutGrid,
+  Link2
 } from "lucide-react";
 import { toast } from "sonner";
 import { AlchemyChamber } from "./AlchemyChamber";
-import { AgenticFeed } from "./AgenticFeed";
+import { AmbientBackground } from "@/components/ui/AmbientBackground";
+import { MagneticButton } from "@/components/ui/MagneticButton";
 
 interface Deck {
   id: string;
   name: string;
   storage_path: string;
-  thumbnail_url?: string;
   created_at: string;
   size?: string;
+  thumbnail_url?: string;
 }
 
 interface Sponsor {
@@ -61,6 +62,33 @@ interface DashboardProps {
   onLogout: () => void;
 }
 
+// Premium Spring Physics
+const springTransition = { type: "spring", stiffness: 300, damping: 30 };
+const fastSpring = { type: "spring", stiffness: 400, damping: 25 };
+
+const staggerContainer: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 }
+  },
+  exit: { 
+    opacity: 0,
+    transition: { staggerChildren: 0.05, staggerDirection: -1 }
+  }
+};
+
+const fadeInUp: Variants = {
+  hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    filter: "blur(0px)",
+    transition: springTransition
+  },
+  exit: { opacity: 0, y: -10, filter: "blur(4px)", transition: { duration: 0.2 } }
+};
+
 export default function Dashboard({ user, onLogout }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<"studio" | "decks" | "sponsors" | "history">("studio");
   
@@ -84,11 +112,12 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
   const [logStage, setLogStage] = useState(0);
   const [proposedReplacements, setProposedReplacements] = useState<Record<string, string>>({});
   const [sessionId, setSessionId] = useState("");
-  const [processingFileUrl, setProcessingFileUrl] = useState("");
   const [scrapedContext, setScrapedContext] = useState("");
   const [replacementsCount, setReplacementsCount] = useState(0);
   const [slidesModifiedCount, setSlidesModifiedCount] = useState(0);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [processingFileUrl, setProcessingFileUrl] = useState<string>("");
+  const [processingFileName, setProcessingFileName] = useState<string>("");
 
   // Search & Filter
   const [sponsorSearch, setSponsorSearch] = useState("");
@@ -114,9 +143,9 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     if (processingState === "fetching") {
       setLogStage(0);
       const timers = [
-        setTimeout(() => setLogStage(1), 1000),
-        setTimeout(() => setLogStage(2), 2500),
-        setTimeout(() => setLogStage(3), 4000),
+        setTimeout(() => setLogStage(1), 1200),
+        setTimeout(() => setLogStage(2), 2800),
+        setTimeout(() => setLogStage(3), 4500),
       ];
       return () => timers.forEach(clearTimeout);
     }
@@ -148,7 +177,6 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       setDecks(data || []);
     } catch (err: any) {
       console.error("Error fetching decks:", err?.message || err);
-      console.dir(err);
       toast.error("Failed to load decks from Database.");
     }
   };
@@ -190,7 +218,6 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       setSponsors(data || []);
     } catch (err: any) {
       console.error("Error fetching sponsors:", err?.message || err);
-      console.dir(err);
     }
   };
 
@@ -219,7 +246,6 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       setHistory(data || []);
     } catch (err: any) {
       console.error("Error fetching history:", err?.message || err);
-      console.dir(err);
     }
   };
 
@@ -266,8 +292,15 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       // 2. Generate exact slide screenshot using backend Python PPTX zip extractor
       let thumbnailUrl = "";
       try {
+        // Fetch the public URL from Supabase first
+        const { data: publicUrlData } = supabase.storage
+          .from("master-decks")
+          .getPublicUrl(storagePath);
+          
+        const fileUrl = publicUrlData.publicUrl;
+
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file_url", fileUrl); // Send file_url instead of massive Blob!
         const thumbResponse = await fetch("http://localhost:8000/api/generate-thumbnail", {
           method: "POST",
           body: formData
@@ -360,7 +393,6 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       if (isMockMode) {
         fileUrlToSend = "https://mock-supabase.com/temp.pptx";
       } else {
-        // Upload custom file temporarily to Supabase to get a URL for the stateless backend
         try {
           const tempPath = `temp/${user.id}/${Math.random().toString(36).substring(7)}_${customFile.name}`;
           const { error: uploadError } = await supabase.storage.from("master-decks").upload(tempPath, customFile);
@@ -395,6 +427,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     setIsProcessing(true);
     setProcessingState("fetching");
     setProcessingFileUrl(fileUrlToSend);
+    setProcessingFileName(selectedDeckName);
+    setSessionId(crypto.randomUUID());
 
     const formData = new FormData();
     formData.append("file_url", fileUrlToSend);
@@ -433,7 +467,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       setProcessingState("alchemy");
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "Failed to propose replacements. Make sure the FastAPI server is running on port 8000.");
+      toast.error(err.message || "Failed to propose replacements. Ensure backend is running.");
       setIsProcessing(false);
       setProcessingState("idle");
     }
@@ -444,11 +478,9 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     let hostname = "Target Sponsor";
     try {
       hostname = new URL(url).hostname.replace("www.", "");
-      // Capitalize first letter
       hostname = hostname.charAt(0).toUpperCase() + hostname.slice(1).split(".")[0];
     } catch {}
 
-    // Avoid duplicating sponsor if already exists
     const duplicate = sponsors.find(s => s.website_url === url);
     if (duplicate) return;
 
@@ -494,12 +526,14 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
         body: JSON.stringify({
           session_id: sessionId,
           file_url: processingFileUrl,
+          original_filename: processingFileName,
           replacements: finalReplacements
         })
       });
 
       if (!response.ok) {
-        throw new Error("Failed to compile final deck. Cache might have expired.");
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(`Server Error: ${errJson.detail || response.statusText}`);
       }
 
       const responseData = await response.json();
@@ -580,7 +614,6 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     setSlidesModifiedCount(0);
   };
 
-  // Filtered Sponsors
   const filteredSponsors = sponsors.filter(s => 
     s.name.toLowerCase().includes(sponsorSearch.toLowerCase()) ||
     s.website_url.toLowerCase().includes(sponsorSearch.toLowerCase()) ||
@@ -588,426 +621,276 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
   );
 
   return (
-    <div className="flex-1 flex flex-col md:flex-row w-full min-h-[calc(100vh-89px)] bg-[#F9F8F6]">
-      {/* Sidebar Workspace Navigation */}
-      <aside className="w-full md:w-64 border-r border-[#EAEAEA] bg-[#FBFBFA]/60 p-6 flex flex-col justify-between shrink-0">
-        <div className="space-y-8">
-          <div>
-            <div className="text-[10px] font-mono tracking-widest text-[#757968] uppercase mb-4">
-              Sync Workspace
+    <div className="flex-1 flex flex-col md:flex-row w-full min-h-[calc(100dvh-73px)] bg-[#F3EFE7] relative overflow-hidden">
+      
+      <AmbientBackground />
+
+      {/* Floating Glass Sidebar */}
+      <aside className="w-full md:w-[280px] shrink-0 p-4 md:p-6 md:pr-0 relative z-20">
+        <div className="w-full h-full bg-white/70 backdrop-blur-2xl border border-zinc-200/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_20px_40px_-15px_rgba(0,0,0,0.05)] rounded-[2rem] p-6 flex flex-col justify-between">
+          <div className="space-y-8">
+            <div>
+              <div className="text-[10px] font-mono tracking-[0.2em] text-zinc-400 uppercase mb-5 ml-1">
+                Workspace
+              </div>
+              <nav className="space-y-1.5">
+                {[
+                  { id: "studio", icon: Sparkles, label: "Studio" },
+                  { id: "decks", icon: Folder, label: "Decks", count: decks.length },
+                  { id: "sponsors", icon: Database, label: "CRM Hub", count: sponsors.length },
+                  { id: "history", icon: History, label: "Logs", count: history.length },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => { setActiveTab(item.id as any); resetProcessingState(); }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                      activeTab === item.id
+                        ? "bg-zinc-950 text-white shadow-md shadow-zinc-950/10"
+                        : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100/50"
+                    }`}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    {item.label}
+                    {item.count !== undefined && (
+                      <span className={`ml-auto text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
+                        activeTab === item.id ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-400"
+                      }`}>
+                        {item.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </nav>
             </div>
-            <nav className="space-y-1.5">
-              <button
-                onClick={() => { setActiveTab("studio"); resetProcessingState(); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all ${
-                  activeTab === "studio"
-                    ? "bg-[#476501]/10 text-[#476501] border-l-2 border-[#476501]"
-                    : "text-[#757968] hover:text-[#111111] hover:bg-[#EAEAEA]/40"
-                }`}
-              >
-                <Sparkles className="w-4 h-4" />
-                Personalization Studio
-              </button>
-
-              <button
-                onClick={() => { setActiveTab("decks"); resetProcessingState(); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all ${
-                  activeTab === "decks"
-                    ? "bg-[#476501]/10 text-[#476501] border-l-2 border-[#476501]"
-                    : "text-[#757968] hover:text-[#111111] hover:bg-[#EAEAEA]/40"
-                }`}
-              >
-                <Folder className="w-4 h-4" />
-                Master Decks Library
-                <span className="ml-auto bg-[#757968]/10 text-[#757968] text-[10px] px-2 py-0.5 font-mono font-bold">
-                  {decks.length}
-                </span>
-              </button>
-
-              <button
-                onClick={() => { setActiveTab("sponsors"); resetProcessingState(); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all ${
-                  activeTab === "sponsors"
-                    ? "bg-[#476501]/10 text-[#476501] border-l-2 border-[#476501]"
-                    : "text-[#757968] hover:text-[#111111] hover:bg-[#EAEAEA]/40"
-                }`}
-              >
-                <Database className="w-4 h-4" />
-                Sponsors CRM Hub
-                <span className="ml-auto bg-[#757968]/10 text-[#757968] text-[10px] px-2 py-0.5 font-mono font-bold">
-                  {sponsors.length}
-                </span>
-              </button>
-
-              <button
-                onClick={() => { setActiveTab("history"); resetProcessingState(); }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all ${
-                  activeTab === "history"
-                    ? "bg-[#476501]/10 text-[#476501] border-l-2 border-[#476501]"
-                    : "text-[#757968] hover:text-[#111111] hover:bg-[#EAEAEA]/40"
-                }`}
-              >
-                <History className="w-4 h-4" />
-                Sync History logs
-                <span className="ml-auto bg-[#757968]/10 text-[#757968] text-[10px] px-2 py-0.5 font-mono font-bold">
-                  {history.length}
-                </span>
-              </button>
-            </nav>
           </div>
-        </div>
 
-        {/* User Card */}
-        <div className="pt-6 border-t border-[#EAEAEA] mt-8">
-          {isMockMode && (
-            <div className="mb-4 bg-[#F5F2EB] border border-[#E1DCD3] p-3 text-[11px] text-[#8C7A5C] leading-normal font-mono flex items-start gap-2">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-              <span>
-                Demo Sandbox: Supabase env not loaded.
+          <div className="pt-6 mt-8">
+            {isMockMode && (
+              <div className="mb-4 bg-orange-50 border border-orange-100 rounded-xl p-3 text-[10px] text-orange-800 leading-relaxed font-mono flex items-start gap-2 shadow-sm">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>Demo Sandbox: Supabase env disconnected.</span>
+              </div>
+            )}
+            <div className="flex flex-col gap-3">
+              <span className="truncate w-full font-mono text-[10px] text-zinc-400 tracking-wider bg-zinc-50 rounded-lg px-3 py-2 border border-zinc-100" title={user?.email}>
+                {user?.email}
               </span>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onLogout}
+                className="w-full flex items-center justify-center gap-2 border border-zinc-200 bg-white text-zinc-700 hover:text-zinc-950 hover:border-zinc-300 rounded-xl px-4 py-2.5 text-xs font-mono font-bold transition-all shadow-sm"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                LOG OUT
+              </motion.button>
             </div>
-          )}
-          <div className="flex items-center justify-between text-xs text-[#757968] mb-4">
-            <span className="truncate max-w-[150px] font-medium font-mono text-[11px]" title={user?.email}>
-              {user?.email}
-            </span>
           </div>
-          <button
-            onClick={onLogout}
-            className="w-full flex items-center justify-center gap-2 border border-[#EAEAEA] bg-white text-[#111111] px-4 py-2 text-xs font-mono font-bold hover:bg-[#FBFBFA] transition-colors"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            LOG OUT WORKSPACE
-          </button>
         </div>
       </aside>
 
-      {/* Main Workspace Workspace Dashboard */}
-      <main className="flex-1 p-6 md:p-12 overflow-x-hidden">
+      {/* Main Content Area */}
+      <main className="flex-1 p-4 md:p-6 overflow-x-hidden relative z-10">
         <AnimatePresence mode="wait">
-          {/* TAB 1: STUDIO (PERSONALIZATION HUB) */}
+          
+          {/* TAB 1: STUDIO */}
           {activeTab === "studio" && (
-            <motion.div
-              key="studio"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="max-w-[1000px] mx-auto"
-            >
+            <motion.div key="studio" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="w-full max-w-[1200px] mx-auto h-full">
               {!isProcessing ? (
-                <>
-                  <div className="mb-10">
-                    <h1 className="text-4xl font-serif font-bold text-[#111111] mb-2" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                      Personalization Studio
-                    </h1>
-                    <p className="text-sm text-[#757968]">
-                      Personalize your pitch decks recursively by choosing an library deck or uploading custom slides.
-                    </p>
-                  </div>
+                <div className="space-y-6">
+                  <motion.div variants={fadeInUp} className="mb-8 px-2">
+                    <h1 className="text-4xl font-bold tracking-tight text-zinc-950 mb-2">Personalization Studio</h1>
+                    <p className="text-sm text-zinc-500 font-medium">Select a master presentation, target a sponsor, and execute AI synchronization.</p>
+                  </motion.div>
 
-                  <form onSubmit={handleProposeReplacements} className="space-y-8">
-                    {/* Presentation Selector */}
-                    <div className="bg-white border border-[#EAEAEA] p-8 shadow-[0_2px_10px_rgba(0,0,0,0.01)] space-y-6">
-                      <div className="text-xs font-mono tracking-widest text-[#757968] uppercase">
-                        1. Select Presentation Source
+                  <form onSubmit={handleProposeReplacements} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    
+                    {/* Left Column: Deck Selection (Bento Tile 1) */}
+                    <motion.div variants={fadeInUp} className="lg:col-span-7 bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex flex-col">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-8 h-8 rounded-full bg-[#CFEE91] flex items-center justify-center text-[#269755]"><LayoutGrid className="w-4 h-4"/></div>
+                        <h2 className="text-lg font-bold text-zinc-900">1. Master Deck</h2>
                       </div>
 
-                      {/* Decks Grid Selection */}
                       {decks.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                           {decks.map((deck) => (
-                            <div
+                            <motion.div
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
                               key={deck.id}
                               onClick={() => { setSelectedDeckId(deck.id); setCustomFile(null); }}
-                              className={`border p-5 flex items-start gap-4 cursor-pointer transition-all ${
+                              className={`rounded-2xl p-4 flex items-start gap-3 cursor-pointer transition-all border-2 ${
                                 selectedDeckId === deck.id && !customFile
-                                  ? "border-[#476501] bg-[#476501]/5 shadow-[0_2px_10px_rgba(71,101,1,0.05)]"
-                                  : "border-[#EAEAEA] hover:bg-[#FBFBFA]"
+                                  ? "border-[#269755] bg-[#CFEE91]/40/50 shadow-sm"
+                                  : "border-zinc-100 bg-white hover:border-zinc-300"
                               }`}
                             >
-                              <div className={`w-10 h-10 rounded flex items-center justify-center ${selectedDeckId === deck.id && !customFile ? "bg-[#476501] text-white" : "bg-[#F0EFEA] text-[#757968]"}`}>
-                                <FileText className="w-5 h-5" />
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${selectedDeckId === deck.id && !customFile ? "bg-[#269755] text-white" : "bg-zinc-100 text-zinc-400"}`}>
+                                <FileText className="w-4 h-4" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h4 className="text-sm font-medium text-[#111111] truncate">{deck.name}</h4>
-                                <p className="text-xs text-[#757968] mt-1 font-mono">
-                                  {new Date(deck.created_at).toLocaleDateString()} {deck.size && `• ${deck.size}`}
-                                </p>
+                                <h4 className="text-sm font-semibold text-zinc-900 truncate">{deck.name}</h4>
+                                <p className="text-[10px] text-zinc-400 mt-0.5 font-mono">{deck.size || "Unknown size"}</p>
                               </div>
-                              <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${selectedDeckId === deck.id && !customFile ? "border-[#476501] bg-[#476501]" : "border-[#EAEAEA]"}`}>
-                                {selectedDeckId === deck.id && !customFile && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-                              </div>
-                            </div>
+                            </motion.div>
                           ))}
                         </div>
                       ) : (
-                        <div className="text-center py-6 border border-dashed border-[#EAEAEA] text-[#757968] text-xs font-mono">
-                          No decks in your library. Add some in the Master Decks tab or upload a one-off below.
+                        <div className="flex-1 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/50 flex flex-col items-center justify-center p-6 text-center mb-6">
+                          <span className="text-xs font-mono text-zinc-500">No decks found in library.</span>
                         </div>
                       )}
 
-                      {/* Divider */}
-                      <div className="relative flex py-2 items-center">
-                        <div className="flex-grow border-t border-[#EAEAEA]"></div>
-                        <span className="flex-shrink mx-4 text-[10px] font-mono tracking-widest text-[#B0B0A8] uppercase">OR UPLOAD CUSTOM FILE</span>
-                        <div className="flex-grow border-t border-[#EAEAEA]"></div>
+                      <div className="mt-auto pt-6 border-t border-zinc-100">
+                        <div className="relative group">
+                          <input type="file" accept=".pptx" onChange={(e) => { setCustomFile(e.target.files?.[0] || null); setSelectedDeckId(""); }} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                          <div className={`w-full rounded-xl border-2 border-dashed flex items-center justify-center p-4 transition-colors ${customFile ? "border-[#269755]/50 bg-[#CFEE91]/40 text-[#1d7240]" : "border-zinc-200 bg-white hover:border-zinc-300 text-zinc-500"}`}>
+                            <Upload className="w-4 h-4 mr-2" />
+                            <span className="text-xs font-semibold">{customFile ? customFile.name : "Or upload one-off .pptx"}</span>
+                          </div>
+                        </div>
                       </div>
+                    </motion.div>
 
-                      {/* Dropzone Upload */}
-                      <div className="border border-dashed border-[#EAEAEA] rounded bg-[#FBFBFA]/50 p-6 flex flex-col items-center justify-center relative hover:bg-[#FBFBFA] transition-colors">
-                        <input
-                          type="file"
-                          accept=".pptx"
-                          onChange={(e) => {
-                            setCustomFile(e.target.files?.[0] || null);
-                            setSelectedDeckId("");
-                          }}
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                        />
-                        <Upload className="w-5 h-5 text-[#757968] mb-2" />
-                        <span className="text-xs font-mono font-bold text-[#476501] hover:underline">
-                          {customFile ? customFile.name : "Select One-off presentation"}
-                        </span>
-                        <span className="text-[10px] text-[#757968] mt-1">PPTX files up to 15MB</span>
-                      </div>
-                    </div>
+                    {/* Right Column: Config & Submit (Bento Tile 2 & 3) */}
+                    <div className="lg:col-span-5 flex flex-col gap-6">
+                      
+                      <motion.div variants={fadeInUp} className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+                        <div className="flex items-center gap-3 mb-6">
+                          <div className="w-8 h-8 rounded-full bg-[#CFEE91] flex items-center justify-center text-[#269755]"><Globe className="w-4 h-4"/></div>
+                          <h2 className="text-lg font-bold text-zinc-900">2. Target Intel</h2>
+                        </div>
+                        
+                        <div className="relative flex items-center focus-within:ring-2 focus-within:ring-[#269755]/20 rounded-xl overflow-hidden shadow-sm border border-zinc-200 bg-white">
+                          <div className="pl-4 pr-2"><Link2 className="w-4 h-4 text-zinc-400" /></div>
+                          <input
+                            type="url" placeholder="https://sponsor-url.com" value={targetUrl} onChange={(e) => setTargetUrl(e.target.value)} required
+                            className="w-full h-12 outline-none bg-transparent placeholder-zinc-300 text-sm font-semibold text-zinc-900"
+                          />
+                        </div>
+                      </motion.div>
 
-                    {/* Intellectual Target URL */}
-                    <div className="bg-white border border-[#EAEAEA] p-8 shadow-[0_2px_10px_rgba(0,0,0,0.01)] space-y-6">
-                      <div className="text-xs font-mono tracking-widest text-[#757968] uppercase">
-                        2. Target Corporate Sponsor
-                      </div>
-                      <div className="relative border-b border-[#EAEAEA] pb-3 flex items-center gap-4">
-                        <Globe className="w-5 h-5 text-[#757968]" strokeWidth={1.5} />
-                        <input
-                          type="url"
-                          placeholder="https://sponsor-website.com"
-                          value={targetUrl}
-                          onChange={(e) => setTargetUrl(e.target.value)}
-                          required
-                          className="w-full outline-none bg-transparent placeholder-[#B0B0A8] text-[#111111] text-md"
-                        />
-                      </div>
-                      <p className="text-xs text-[#757968] leading-relaxed">
-                        We will scrape this URL to analyze sponsor values, developer directives, and CSR goals to align text blocks recursively.
-                      </p>
-                    </div>
+                      <motion.div variants={fadeInUp} className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex-1 flex flex-col justify-between">
+                        <div className="mb-4">
+                          <button type="button" onClick={() => setIsTonePanelOpen(!isTonePanelOpen)} className="w-full flex items-center justify-between text-xs font-semibold text-zinc-600 focus:outline-none">
+                            <span className="flex items-center gap-2"><Sliders className="w-4 h-4 text-zinc-400" /> Advanced Params</span>
+                            <motion.div animate={{ rotate: isTonePanelOpen ? 180 : 0 }} transition={fastSpring}><ChevronDown className="w-4 h-4 text-zinc-400" /></motion.div>
+                          </button>
 
-                    {/* Tonal Alignment Collapsible Parameters */}
-                    <div className="bg-white border border-[#EAEAEA] p-6 shadow-[0_2px_10px_rgba(0,0,0,0.01)]">
-                      <button
-                        type="button"
-                        onClick={() => setIsTonePanelOpen(!isTonePanelOpen)}
-                        className="w-full flex items-center justify-between font-mono text-xs tracking-widest text-[#757968] uppercase font-bold focus:outline-none"
-                      >
-                        <span className="flex items-center gap-2">
-                          <Sliders className="w-4 h-4" />
-                          Advanced Tonal Alignment Panel (Optional)
-                        </span>
-                        {isTonePanelOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                      </button>
+                          <AnimatePresence>
+                            {isTonePanelOpen && (
+                              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                                <div className="pt-6 space-y-5">
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between text-[10px] font-mono text-zinc-400 font-medium">
+                                      <span>Narrative</span>
+                                      <span className="text-zinc-900 font-bold">{toneFormal < 35 ? "Creative" : toneFormal > 65 ? "Corporate" : "Balanced"}</span>
+                                      <span>Formal</span>
+                                    </div>
+                                    <input type="range" min="0" max="100" value={toneFormal} onChange={(e) => setToneFormal(parseInt(e.target.value, 10))} className="w-full h-1 bg-zinc-200 rounded-full appearance-none cursor-pointer accent-zinc-900" />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between text-[10px] font-mono text-zinc-400 font-medium">
+                                      <span>Impact</span>
+                                      <span className="text-zinc-900 font-bold">{toneTechnical < 35 ? "Social" : toneTechnical > 65 ? "Technical" : "Balanced"}</span>
+                                      <span>Tech</span>
+                                    </div>
+                                    <input type="range" min="0" max="100" value={toneTechnical} onChange={(e) => setToneTechnical(parseInt(e.target.value, 10))} className="w-full h-1 bg-zinc-200 rounded-full appearance-none cursor-pointer accent-zinc-900" />
+                                  </div>
+                                  <textarea placeholder="Custom directive..." value={customFocus} onChange={(e) => setCustomFocus(e.target.value)} rows={2} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-900 outline-none resize-none" />
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
 
-                      {isTonePanelOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          transition={{ duration: 0.2 }}
-                          className="pt-6 mt-6 border-t border-[#EAEAEA] space-y-6"
+                        <MagneticButton
+                          type="submit" disabled={(!selectedDeckId && !customFile) || !targetUrl}
+                          className="w-full bg-zinc-950 text-white h-14 rounded-xl flex items-center justify-center gap-2 mt-auto hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
                         >
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Sliders 1: Formal / Creative */}
-                            <div className="space-y-3">
-                              <div className="flex justify-between text-xs font-mono">
-                                <span className="text-[#757968]">Creative</span>
-                                <span className="font-bold text-[#111111]">
-                                  {toneFormal < 35 ? "Narrative Creative" : toneFormal > 65 ? "Corporate Formal" : "Balanced"}
-                                </span>
-                                <span className="text-[#757968]">Formal</span>
-                              </div>
-                              <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                value={toneFormal}
-                                onChange={(e) => setToneFormal(parseInt(e.target.value, 10))}
-                                className="w-full h-1 bg-[#F0EFEA] rounded-lg appearance-none cursor-pointer accent-[#476501]"
-                              />
-                            </div>
-
-                            {/* Sliders 2: Tech / CSR */}
-                            <div className="space-y-3">
-                              <div className="flex justify-between text-xs font-mono">
-                                <span className="text-[#757968]">CSR / Community</span>
-                                <span className="font-bold text-[#111111]">
-                                  {toneTechnical < 35 ? "Impact Oriented" : toneTechnical > 65 ? "Developer Technical" : "Balanced"}
-                                </span>
-                                <span className="text-[#757968]">Technical Stack</span>
-                              </div>
-                              <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                value={toneTechnical}
-                                onChange={(e) => setToneTechnical(parseInt(e.target.value, 10))}
-                                className="w-full h-1 bg-[#F0EFEA] rounded-lg appearance-none cursor-pointer accent-[#476501]"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Custom Alignment focus text area */}
-                          <div className="space-y-2">
-                            <label className="text-[11px] font-mono text-[#757968] tracking-widest uppercase block">
-                              Custom Directive Focus
-                            </label>
-                            <textarea
-                              placeholder="e.g. Focus on our carbon-neutral web frameworks, target stripe terminal developer integrations..."
-                              value={customFocus}
-                              onChange={(e) => setCustomFocus(e.target.value)}
-                              rows={2}
-                              className="w-full p-3 bg-[#FBFBFA] border border-[#EAEAEA] text-sm text-[#111111] focus:border-[#476501] outline-none resize-none font-sans"
-                            />
-                          </div>
-                        </motion.div>
-                      )}
+                          <span className="text-sm font-bold tracking-wide">Synthesize Pitch</span>
+                          <Sparkles className="w-4 h-4" />
+                        </MagneticButton>
+                      </motion.div>
                     </div>
-
-                    {/* Sync Trigger button */}
-                    <motion.button
-                      whileTap={{ scale: 0.98 }}
-                      type="submit"
-                      disabled={(!selectedDeckId && !customFile) || !targetUrl}
-                      className="w-full bg-[#1A1C15] text-white h-16 flex items-center justify-center gap-3 hover:bg-[#2F3129] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md font-serif text-2xl tracking-wide"
-                      style={{ fontFamily: "var(--font-playfair-display), serif" }}
-                    >
-                      <span>Analyze & Propose Sync</span>
-                      <Sparkles className="w-5 h-5" strokeWidth={1.5} />
-                    </motion.button>
                   </form>
-                </>
+                </div>
               ) : (
-                /* TWO-PHASE WORKFLOW STATE RENDERINGS */
-                <div className="w-full max-w-[1000px] mx-auto min-h-[400px]">
-                  {/* Phase 1 Fetching */}
+                /* STATE WORKFLOW */
+                <div className="w-full max-w-[1000px] mx-auto flex flex-col">
                   {processingState === "fetching" && (
-                    <motion.div
-                      key="fetching"
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex flex-col items-center justify-center py-12"
-                    >
-                      {/* Spinning Circular Progress */}
-                      <div className="relative w-32 h-32 mb-10 flex items-center justify-center">
-                        {/* Outer spin ring */}
-                        <div className="absolute w-full h-full rounded-full border-4 border-[#EAEAEA] border-t-[#476501] animate-spin" />
-                        {/* Inner pulse circle */}
-                        <div className="absolute w-20 h-20 rounded-full bg-[#CFEE91]/20 animate-pulse flex items-center justify-center">
-                          <Sparkles className="w-8 h-8 text-[#476501]" />
+                    <motion.div key="fetching" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="flex flex-col items-center justify-center min-h-[calc(100vh-16rem)]">
+                      <motion.div variants={fadeInUp} className="relative w-24 h-24 mb-12 flex items-center justify-center">
+                        <div className="absolute w-full h-full rounded-full border border-zinc-200 border-t-zinc-900 animate-spin" style={{ animationDuration: '2s' }} />
+                        <div className="absolute w-16 h-16 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center shadow-sm">
+                          <Sparkles className="w-6 h-6 text-zinc-900 animate-pulse" />
                         </div>
+                      </motion.div>
+                      <motion.h2 variants={fadeInUp} className="text-2xl font-bold tracking-tight mb-12 text-zinc-900 text-center">Personalizing presentation layers...</motion.h2>
+                      <div className="w-full max-w-lg space-y-4 text-left">
+                        {[
+                          { step: 1, title: "Extract Presentation Copy", desc: "Recursively traversing shapes and table structures." },
+                          { step: 2, title: "Scrape Target Context", desc: "Analyzing sponsor URL for CSR and structural goals." },
+                          { step: 3, title: "Tonal Synthesis", desc: "Gemini generating layout-constrained replacements." }
+                        ].map((item, idx) => {
+                          const isActive = logStage >= item.step;
+                          const isCurrent = logStage === item.step - 1;
+                          return (
+                            <motion.div key={item.step} variants={fadeInUp} className={`flex items-start gap-4 p-5 rounded-2xl border transition-all duration-700 ${isActive ? "bg-white border-zinc-200 shadow-sm" : isCurrent ? "bg-zinc-50 border-zinc-200" : "bg-transparent border-transparent opacity-40"}`}>
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-colors duration-700 ${isActive ? "bg-zinc-900 text-white" : isCurrent ? "border border-zinc-300 text-zinc-500" : "border border-zinc-200 text-zinc-300"}`}>
+                                {isActive ? <Check className="w-3 h-3" /> : <div className={`w-1.5 h-1.5 rounded-full ${isCurrent ? 'bg-zinc-400 animate-ping' : 'bg-zinc-300'}`} />}
+                              </div>
+                              <div>
+                                <h4 className={`text-sm font-semibold transition-colors duration-700 ${isActive ? "text-zinc-900" : isCurrent ? "text-zinc-700" : "text-zinc-400"}`}>{item.title}</h4>
+                                <p className={`text-xs mt-1 transition-colors duration-700 ${isActive || isCurrent ? "text-zinc-500" : "text-zinc-400"}`}>{item.desc}</p>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
                       </div>
-
-                      <h2 className="text-3xl font-serif font-bold text-[#111111] mb-2 text-center" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                        Personalizing Pitch
-                      </h2>
-                      <p className="text-[#757968] mb-12 text-center text-sm font-mono max-w-[420px]">
-                        {logStage === 0 && "Decomposing slide paragraph layers recursively..."}
-                        {logStage === 1 && "Scraping target sponsor context data via Firecrawl..."}
-                        {logStage >= 2 && "Synthesizing copies using Gemini tone controls..."}
-                      </p>
-
-                      <AgenticFeed logStage={logStage} />
                     </motion.div>
                   )}
 
-                  {/* Phase 1.5: Alchemy Chamber Edit */}
                   {processingState === "alchemy" && (
-                    <motion.div
-                      key="alchemy"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="w-full"
-                    >
-                      <AlchemyChamber
-                        proposedReplacements={proposedReplacements}
-                        scrapedContext={scrapedContext}
-                        onCancel={resetProcessingState}
-                        onCompile={handleCompileDeck}
-                      />
+                    <motion.div key="alchemy" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} className="w-full py-10">
+                      <AlchemyChamber proposedReplacements={proposedReplacements} scrapedContext={scrapedContext} onCancel={resetProcessingState} onCompile={handleCompileDeck} />
                     </motion.div>
                   )}
 
-                  {/* Phase 2: Compiling */}
                   {processingState === "compiling" && (
-                    <motion.div
-                      key="compiling"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex flex-col items-center justify-center py-20"
-                    >
-                      <Loader2 className="w-12 h-12 text-[#476501] animate-spin mb-4" />
-                      <h3 className="text-2xl font-serif font-bold text-[#111111] mb-2" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                        Patching presentation XML layers...
-                      </h3>
-                      <p className="text-[#757968] text-xs font-mono">
-                        Validating file integrity to ensure zero formatting distortions.
-                      </p>
+                    <motion.div key="compiling" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="flex flex-col items-center justify-center min-h-[calc(100vh-16rem)]">
+                      <motion.div variants={fadeInUp} className="w-16 h-16 rounded-2xl bg-zinc-50 border border-zinc-200 flex items-center justify-center mb-8 shadow-sm">
+                        <Loader2 className="w-6 h-6 text-zinc-900 animate-spin" />
+                      </motion.div>
+                      <motion.h3 variants={fadeInUp} className="text-xl font-bold text-zinc-900 mb-3 tracking-tight">Injecting variables and compiling...</motion.h3>
+                      <motion.p variants={fadeInUp} className="text-zinc-500 text-xs font-mono tracking-wide">Executing anti-corruption XML checks</motion.p>
                     </motion.div>
                   )}
 
-                  {/* Phase 2.5: Success Screen */}
                   {processingState === "success" && (
-                    <motion.div
-                      key="success"
-                      initial={{ opacity: 0, y: 15 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="max-w-[650px] mx-auto bg-white border border-[#EAEAEA] p-12 flex flex-col items-center shadow-md text-center"
-                    >
-                      <div className="w-14 h-14 bg-[#CFEE91] rounded-xl flex items-center justify-center mb-6 text-[#476501]">
-                        <Check className="w-7 h-7" strokeWidth={2.5} />
-                      </div>
+                    <motion.div key="success" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="max-w-2xl mx-auto bg-white border border-zinc-200/60 rounded-[2.5rem] p-12 flex flex-col items-center shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] text-center my-auto mt-20">
+                      <motion.div variants={fadeInUp} className="w-16 h-16 bg-[#CFEE91] rounded-2xl flex items-center justify-center mb-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                        <Check className="w-7 h-7 text-[#269755]" strokeWidth={2.5} />
+                      </motion.div>
+                      <motion.h1 variants={fadeInUp} className="text-3xl font-bold tracking-tight mb-4 text-zinc-900">Synthesis Complete</motion.h1>
+                      <motion.p variants={fadeInUp} className="text-zinc-500 text-sm mb-12 max-w-md">Your pitch deck has been recursively aligned. Ready for download.</motion.p>
 
-                      <h2 className="text-3xl font-serif font-bold text-[#111111] mb-2" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                        Presentation Personalized
-                      </h2>
-                      <p className="text-[#757968] text-sm mb-8 max-w-[420px]">
-                        The personalized presentation is ready. We've updated the copies recursively according to your edits.
-                      </p>
-
-                      {/* Metrics */}
-                      <div className="grid grid-cols-2 gap-4 w-full mb-8">
-                        <div className="border border-[#EAEAEA] p-5">
-                          <div className="text-2xl font-serif font-bold text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                            {replacementsCount}
-                          </div>
-                          <div className="text-[9px] font-mono text-[#757968] uppercase tracking-wider mt-1">
-                            Segments Replaced
-                          </div>
+                      <motion.div variants={fadeInUp} className="grid grid-cols-2 gap-4 w-full mb-10">
+                        <div className="bg-zinc-50 rounded-2xl p-6 border border-zinc-100 flex flex-col items-center">
+                          <div className="text-3xl font-bold mb-1 text-zinc-900">{replacementsCount}</div>
+                          <div className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase">Strings Adapted</div>
                         </div>
-                        <div className="border border-[#EAEAEA] p-5">
-                          <div className="text-2xl font-serif font-bold text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                            {slidesModifiedCount}
-                          </div>
-                          <div className="text-[9px] font-mono text-[#757968] uppercase tracking-wider mt-1">
-                            Slides Modified
-                          </div>
+                        <div className="bg-zinc-50 rounded-2xl p-6 border border-zinc-100 flex flex-col items-center">
+                          <div className="text-3xl font-bold mb-1 text-zinc-900">{slidesModifiedCount}</div>
+                          <div className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase">Slides Modified</div>
                         </div>
-                      </div>
+                      </motion.div>
 
-                      {/* Call Actions */}
-                      <a
-                        href={downloadUrl || "#"}
-                        download={`FundSync_Targeted_Personalized.pptx`}
-                        className="w-full bg-[#476501] text-white h-14 flex items-center justify-center gap-3 hover:bg-[#5f7f1f] transition-colors mb-4 rounded-sm font-sans font-medium text-lg"
-                      >
-                        <Download className="w-5 h-5" />
-                        Download PPTX
-                      </a>
-
-                      <button
-                        onClick={resetProcessingState}
-                        className="text-[#757968] font-mono text-xs uppercase tracking-wider hover:text-[#111111] transition-colors"
-                      >
-                        Return to Personalization Studio
-                      </button>
+                      <motion.a variants={fadeInUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} href={downloadUrl || "#"} download={`FundSync_Personalized.pptx`} className="w-full bg-zinc-950 text-white h-14 flex items-center justify-center gap-3 hover:bg-zinc-800 rounded-xl font-bold shadow-[0_4px_14px_rgba(0,0,0,0.1)] mb-6">
+                        <Download className="w-4 h-4" /> Download .pptx
+                      </motion.a>
+                      <motion.button variants={fadeInUp} onClick={resetProcessingState} className="text-zinc-400 font-mono text-[10px] uppercase tracking-widest hover:text-zinc-900 transition-colors">Start New Session</motion.button>
                     </motion.div>
                   )}
                 </div>
@@ -1017,300 +900,172 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
           {/* TAB 2: MASTER DECKS LIBRARY */}
           {activeTab === "decks" && (
-            <motion.div
-              key="decks"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="max-w-[1000px] mx-auto"
-            >
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
-                <div>
-                  <h1 className="text-4xl font-serif font-bold text-[#111111] mb-2" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                    Master Decks Library
-                  </h1>
-                  <p className="text-sm text-[#757968]">
-                    Save your base presentation templates to personal Cloud storage to reuse during personalization.
-                  </p>
-                </div>
+            <motion.div key="decks" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="w-full h-full max-w-[1400px] mx-auto">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10 px-2">
+                <motion.div variants={fadeInUp}>
+                  <h1 className="text-4xl font-bold tracking-tight text-zinc-950 mb-2">Decks Library</h1>
+                  <p className="text-sm text-zinc-500 font-medium">Manage base presentation templates in your Cloud storage.</p>
+                </motion.div>
 
-                <div className="relative cursor-pointer shrink-0">
-                  <input
-                    type="file"
-                    accept=".pptx"
-                    onChange={handleUploadDeck}
-                    disabled={isUploadingDeck}
-                    className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed"
-                  />
-                  <button
-                    disabled={isUploadingDeck}
-                    className="flex items-center gap-2 bg-[#476501] hover:bg-[#5f7f1f] text-white px-5 py-2.5 text-xs font-mono font-bold transition-colors shadow-sm disabled:opacity-50"
-                  >
-                    {isUploadingDeck ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Upload className="w-3.5 h-3.5" />
-                    )}
-                    UPLOAD MASTER PITCH (.pptx)
-                  </button>
-                </div>
+                <motion.div variants={fadeInUp} className="relative shrink-0">
+                  <input type="file" accept=".pptx" onChange={handleUploadDeck} disabled={isUploadingDeck} className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed z-10" />
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={isUploadingDeck} className="flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white px-6 py-3 rounded-full text-xs font-mono font-bold tracking-wider shadow-md disabled:opacity-50">
+                    {isUploadingDeck ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    UPLOAD TEMPLATE
+                  </motion.button>
+                </motion.div>
               </div>
 
-              {/* Decks Grid */}
               {decks.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {decks.map((deck) => (
-                    <div
-                      key={deck.id}
-                      className="bg-white border border-[#EAEAEA] rounded-sm shadow-[0_2px_10px_rgba(0,0,0,0.01)] hover:shadow-md transition-all flex flex-col relative group overflow-hidden"
-                    >
-                      {/* Image Thumbnail Header */}
-                      <div className="w-full aspect-video bg-[#F0EFEA] border-b border-[#EAEAEA] flex items-center justify-center relative overflow-hidden">
+                    <motion.div variants={fadeInUp} key={deck.id} className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 flex flex-col group overflow-hidden relative">
+                      <div className="w-full aspect-video bg-zinc-100 flex items-center justify-center relative overflow-hidden">
                         {deck.thumbnail_url ? (
-                          <img src={deck.thumbnail_url} alt={deck.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                          <img src={deck.thumbnail_url} alt={deck.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                         ) : (
-                          <div className="text-[#B0B0A8] flex flex-col items-center">
-                            <FileText className="w-8 h-8 mb-2" />
-                            <span className="text-[10px] font-mono uppercase tracking-widest">No Preview</span>
-                          </div>
+                          <div className="flex flex-col items-center text-zinc-400"><FileText className="w-8 h-8 mb-2" strokeWidth={1.5} /><span className="text-[10px] font-mono tracking-widest uppercase">No Preview</span></div>
                         )}
-                        
-                        {/* Hover Overlay action */}
-                        <div className="absolute inset-0 bg-[#111111]/70 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <button
-                            onClick={() => {
-                              setSelectedDeckId(deck.id);
-                              setCustomFile(null);
-                              setActiveTab("studio");
-                            }}
-                            className="bg-[#CFEE91] text-[#476501] px-5 py-2.5 text-xs font-mono font-bold tracking-widest uppercase rounded-sm flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-all shadow-lg"
-                          >
-                            <Sparkles className="w-3.5 h-3.5" /> Pitch Sponsor
-                          </button>
+                        <div className="absolute inset-0 bg-zinc-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-sm">
+                          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => { setSelectedDeckId(deck.id); setCustomFile(null); setActiveTab("studio"); }} className="bg-white text-zinc-950 px-6 py-3 rounded-full text-xs font-bold shadow-xl flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-[#269755]" /> Start Sync
+                          </motion.button>
                         </div>
                       </div>
-
-                      {/* Card Footer */}
-                      <div className="p-5">
-                        <h3 className="font-serif font-bold text-lg text-[#111111] truncate mb-1" style={{ fontFamily: "var(--font-playfair-display), serif" }} title={deck.name}>
-                          {deck.name}
-                        </h3>
-                        <p className="text-[10px] font-mono tracking-widest uppercase text-[#757968]">
-                          {new Date(deck.created_at).toLocaleDateString()} {deck.size && `• ${deck.size}`}
-                        </p>
+                      <div className="p-6">
+                        <h3 className="font-bold text-lg text-zinc-900 truncate mb-1">{deck.name}</h3>
+                        <p className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">{new Date(deck.created_at).toLocaleDateString()} • {deck.size || 'Unknown'}</p>
                       </div>
-
-                      {/* Delete button */}
-                      <button
-                        onClick={() => handleDeleteDeck(deck.id, deck.storage_path, deck.name)}
-                        className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-[#B0B0A8] hover:text-[#ED6A5E] p-1.5 rounded-sm shadow-sm opacity-0 group-hover:opacity-100 transition-all border border-[#EAEAEA]"
-                        title="Delete deck"
-                      >
+                      <button onClick={() => handleDeleteDeck(deck.id, deck.storage_path, deck.name)} className="absolute top-4 right-4 bg-white/90 backdrop-blur-md text-zinc-400 hover:text-red-500 p-2 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all border border-zinc-200 translate-y-[-10px] group-hover:translate-y-0">
                         <Trash2 className="w-4 h-4" />
                       </button>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               ) : (
-                <div className="bg-white border border-[#EAEAEA] p-16 flex flex-col items-center justify-center text-center">
-                  <Folder className="w-12 h-12 text-[#B0B0A8] mb-4" strokeWidth={1} />
-                  <h3 className="text-lg font-serif font-bold text-[#111111] mb-2" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                    Library is empty
-                  </h3>
-                  <p className="text-xs text-[#757968] max-w-[280px] mb-6 leading-relaxed">
-                    Upload your pitch deck template. It will be safely saved in Supabase Storage.
-                  </p>
-                </div>
+                <motion.div variants={fadeInUp} className="bg-white/50 border border-zinc-200/60 rounded-[2.5rem] p-24 flex flex-col items-center text-center">
+                  <Folder className="w-12 h-12 text-zinc-300 mb-6" strokeWidth={1} />
+                  <h3 className="text-xl font-bold text-zinc-900 mb-2">Library is empty</h3>
+                  <p className="text-sm text-zinc-500 max-w-sm">Upload your first `.pptx` template. It will be safely saved in Cloud Storage for future synchronizations.</p>
+                </motion.div>
               )}
             </motion.div>
           )}
 
-          {/* TAB 3: SPONSORS CRM HUB */}
+          {/* TAB 3: SPONSORS */}
           {activeTab === "sponsors" && (
-            <motion.div
-              key="sponsors"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="max-w-[1000px] mx-auto"
-            >
-              <div className="mb-10">
-                <h1 className="text-4xl font-serif font-bold text-[#111111] mb-2" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                  Sponsors CRM Hub
-                </h1>
-                <p className="text-sm text-[#757968]">
-                  Browse scraped corporate profiles, dossier context, and brand directives saved from your previous sync runs.
-                </p>
-              </div>
+            <motion.div key="sponsors" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="w-full h-full max-w-[1200px] mx-auto">
+              <motion.div variants={fadeInUp} className="mb-10 px-2">
+                <h1 className="text-4xl font-bold tracking-tight text-zinc-950 mb-2">CRM Hub</h1>
+                <p className="text-sm text-zinc-500 font-medium">Browse extracted corporate dossiers and alignment mandates.</p>
+              </motion.div>
 
-              {/* CRM Search & Utilities */}
-              <div className="flex gap-4 mb-8">
-                <div className="flex-1 bg-white border border-[#EAEAEA] px-4 py-3 flex items-center gap-3">
-                  <Search className="w-4 h-4 text-[#757968]" />
-                  <input
-                    type="text"
-                    placeholder="Search sponsors by name, URL, or dossier keywords..."
-                    value={sponsorSearch}
-                    onChange={(e) => setSponsorSearch(e.target.value)}
-                    className="w-full bg-transparent outline-none text-sm placeholder-[#B0B0A8] text-[#111111]"
-                  />
+              <motion.div variants={fadeInUp} className="flex gap-4 mb-8">
+                <div className="flex-1 bg-white/80 backdrop-blur-md border border-zinc-200/80 rounded-2xl px-5 py-4 flex items-center gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                  <Search className="w-5 h-5 text-zinc-400" />
+                  <input type="text" placeholder="Search by name, URL, or dossier keywords..." value={sponsorSearch} onChange={(e) => setSponsorSearch(e.target.value)} className="w-full bg-transparent outline-none text-sm font-medium placeholder-zinc-400 text-zinc-900" />
                 </div>
-              </div>
+              </motion.div>
 
-              {/* Sponsors directory list */}
               {filteredSponsors.length > 0 ? (
-                <div className="bg-white border border-[#EAEAEA] divide-y divide-[#EAEAEA]">
+                <motion.div variants={fadeInUp} className="grid grid-cols-1 gap-4">
                   {filteredSponsors.map((sponsor) => {
                     const isExpanded = expandedSponsorId === sponsor.id;
                     return (
-                      <div key={sponsor.id} className="p-6 transition-all hover:bg-[#FBFBFA]/40">
+                      <motion.div layout key={sponsor.id} className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[1.5rem] p-6 shadow-[0_4px_20px_rgba(0,0,0,0.02)] transition-all">
                         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-                          <div className="flex items-start gap-4">
-                            <div className="w-10 h-10 rounded bg-[#F0EFEA] flex items-center justify-center text-[#757968] shrink-0 font-serif font-bold">
+                          <div className="flex items-center gap-5">
+                            <div className="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-600 font-bold text-lg border border-zinc-200 shrink-0">
                               {sponsor.name.charAt(0)}
                             </div>
                             <div>
-                              <h3 className="font-serif font-bold text-lg text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                                {sponsor.name}
-                              </h3>
-                              <a
-                                href={sponsor.website_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-xs text-[#757968] hover:text-[#476501] hover:underline flex items-center gap-1 mt-1 font-mono"
-                              >
-                                <Globe className="w-3 h-3" />
-                                {sponsor.website_url}
+                              <h3 className="font-bold text-xl text-zinc-900">{sponsor.name}</h3>
+                              <a href={sponsor.website_url} target="_blank" rel="noreferrer" className="text-xs text-zinc-400 hover:text-[#269755] font-mono flex items-center gap-1.5 mt-1 transition-colors">
+                                <Globe className="w-3 h-3" /> {sponsor.website_url}
                               </a>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-4 text-xs font-mono">
-                            <button
-                              onClick={() => {
-                                setTargetUrl(sponsor.website_url);
-                                setActiveTab("studio");
-                              }}
-                              className="bg-[#1A1C15] hover:bg-[#2F3129] text-white px-4 py-2 font-bold transition-all shrink-0"
-                            >
-                              Sync Pitch
-                            </button>
-
-                            <button
-                              onClick={() => setExpandedSponsorId(isExpanded ? null : sponsor.id)}
-                              className="text-[#757968] hover:text-[#111111] p-1 flex items-center gap-1"
-                            >
-                              {isExpanded ? "Collapse dossier" : "View dossier"}
-                              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                          <div className="flex items-center gap-3">
+                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => { setTargetUrl(sponsor.website_url); setActiveTab("studio"); }} className="bg-zinc-900 text-white px-5 py-2.5 rounded-full text-[11px] font-mono font-bold tracking-widest transition-all shadow-md">
+                              SYNC PITCH
+                            </motion.button>
+                            <button onClick={() => setExpandedSponsorId(isExpanded ? null : sponsor.id)} className="w-10 h-10 rounded-full border border-zinc-200 flex items-center justify-center text-zinc-500 hover:bg-zinc-50 transition-colors">
+                              <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={fastSpring}><ChevronDown className="w-4 h-4" /></motion.div>
                             </button>
                           </div>
                         </div>
 
-                        {/* Expanded Dossier Context Info */}
-                        {isExpanded && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            className="mt-6 pt-6 border-t border-[#EAEAEA] space-y-4"
-                          >
-                            <div>
-                              <span className="text-[10px] font-mono tracking-wider text-[#757968] uppercase font-bold block mb-2">
-                                Brand Dossier Context (Extracted AI Mandates)
-                              </span>
-                              <div className="bg-[#FBFBFA] border border-[#EAEAEA] p-4 text-xs font-mono text-[#44493A] leading-relaxed max-h-[300px] overflow-y-auto whitespace-pre-wrap">
-                                {sponsor.dossier_context || "No context data gathered."}
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                              <div className="mt-6 pt-6 border-t border-zinc-100">
+                                <span className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase font-bold block mb-3 pl-1">Extracted AI Context</span>
+                                <div className="bg-zinc-50 border border-zinc-200/80 rounded-2xl p-6 text-sm text-zinc-700 leading-relaxed max-h-[300px] overflow-y-auto whitespace-pre-wrap font-medium">
+                                  {sponsor.dossier_context || "No context data gathered."}
+                                </div>
+                                <div className="text-[10px] font-mono text-zinc-400 mt-4 pl-1">Scanned: {new Date(sponsor.created_at).toLocaleString()}</div>
                               </div>
-                            </div>
-                            <div className="text-[10px] font-mono text-[#B0B0A8]">
-                              Dossier scanned: {new Date(sponsor.created_at).toLocaleString()}
-                            </div>
-                          </motion.div>
-                        )}
-                      </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
                     );
                   })}
-                </div>
+                </motion.div>
               ) : (
-                <div className="bg-white border border-[#EAEAEA] p-16 flex flex-col items-center justify-center text-center">
-                  <Database className="w-12 h-12 text-[#B0B0A8] mb-4" strokeWidth={1} />
-                  <h3 className="text-lg font-serif font-bold text-[#111111] mb-2" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                    No corporate profiles found
-                  </h3>
-                  <p className="text-xs text-[#757968] max-w-[280px]">
-                    Sponsors are cataloged here automatically after you run a personalization pitch sync.
-                  </p>
-                </div>
+                <motion.div variants={fadeInUp} className="bg-white/50 border border-zinc-200/60 rounded-[2.5rem] p-24 flex flex-col items-center text-center">
+                  <Database className="w-12 h-12 text-zinc-300 mb-6" strokeWidth={1} />
+                  <h3 className="text-xl font-bold text-zinc-900 mb-2">No corporate profiles</h3>
+                  <p className="text-sm text-zinc-500 max-w-sm">Sponsors are cataloged automatically after you execute a personalization sync.</p>
+                </motion.div>
               )}
             </motion.div>
           )}
 
-          {/* TAB 4: SYNC HISTORY LOGS */}
+          {/* TAB 4: HISTORY */}
           {activeTab === "history" && (
-            <motion.div
-              key="history"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="max-w-[1000px] mx-auto"
-            >
-              <div className="mb-10">
-                <h1 className="text-4xl font-serif font-bold text-[#111111] mb-2" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                  Sync History logs
-                </h1>
-                <p className="text-sm text-[#757968]">
-                  Audit log tracking previous deck personalizations, modifications count, and sync timestamps.
-                </p>
-              </div>
+            <motion.div key="history" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="w-full h-full max-w-[1200px] mx-auto">
+              <motion.div variants={fadeInUp} className="mb-10 px-2">
+                <h1 className="text-4xl font-bold tracking-tight text-zinc-950 mb-2">Sync History</h1>
+                <p className="text-sm text-zinc-500 font-medium">Audit ledger of previous personalizations and modification counts.</p>
+              </motion.div>
 
-              {/* History Table */}
               {history.length > 0 ? (
-                <div className="bg-white border border-[#EAEAEA] overflow-hidden">
+                <motion.div variants={fadeInUp} className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="border-b border-[#EAEAEA] bg-[#FBFBFA] text-[10px] font-mono tracking-widest text-[#757968] uppercase">
-                        <th className="py-4 px-6 font-bold">Presentation File</th>
-                        <th className="py-4 px-6 font-bold">Sponsor aligned</th>
-                        <th className="py-4 px-6 font-bold text-center">Edits Made</th>
-                        <th className="py-4 px-6 font-bold text-center">Slides Affected</th>
-                        <th className="py-4 px-6 font-bold text-right">Date synced</th>
+                      <tr className="bg-zinc-50/80 border-b border-zinc-200 text-[10px] font-mono tracking-widest text-zinc-500 uppercase">
+                        <th className="py-5 px-8 font-bold">Document</th>
+                        <th className="py-5 px-8 font-bold">Target Sponsor</th>
+                        <th className="py-5 px-8 font-bold text-center">Mutations</th>
+                        <th className="py-5 px-8 font-bold text-center">Slides</th>
+                        <th className="py-5 px-8 font-bold text-right">Timestamp</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#EAEAEA] text-xs font-mono text-[#44493A]">
+                    <tbody className="divide-y divide-zinc-100 text-sm text-zinc-700 font-medium">
                       {history.map((item) => (
-                        <tr key={item.id} className="hover:bg-[#FBFBFA]/50 transition-colors">
-                          <td className="py-4 px-6 font-medium text-[#111111] max-w-[220px] truncate" title={item.deck_name}>
-                            {item.deck_name}
-                          </td>
-                          <td className="py-4 px-6 font-bold text-[#476501]">
-                            {item.sponsor_name}
-                          </td>
-                          <td className="py-4 px-6 text-center font-bold">
-                            {item.replacements_count}
-                          </td>
-                          <td className="py-4 px-6 text-center font-bold">
-                            {item.slides_modified}
-                          </td>
-                          <td className="py-4 px-6 text-right text-[#757968]">
-                            {new Date(item.created_at).toLocaleString()}
-                          </td>
+                        <tr key={item.id} className="hover:bg-zinc-50/50 transition-colors">
+                          <td className="py-5 px-8 text-zinc-900 max-w-[250px] truncate" title={item.deck_name}>{item.deck_name}</td>
+                          <td className="py-5 px-8 text-[#269755] font-bold">{item.sponsor_name}</td>
+                          <td className="py-5 px-8 text-center"><span className="bg-zinc-100 px-3 py-1 rounded-full text-xs font-mono font-bold text-zinc-600">{item.replacements_count}</span></td>
+                          <td className="py-5 px-8 text-center"><span className="bg-zinc-100 px-3 py-1 rounded-full text-xs font-mono font-bold text-zinc-600">{item.slides_modified}</span></td>
+                          <td className="py-5 px-8 text-right text-zinc-400 font-mono text-[10px]">{new Date(item.created_at).toLocaleString()}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </motion.div>
               ) : (
-                <div className="bg-white border border-[#EAEAEA] p-16 flex flex-col items-center justify-center text-center">
-                  <History className="w-12 h-12 text-[#B0B0A8] mb-4" strokeWidth={1} />
-                  <h3 className="text-lg font-serif font-bold text-[#111111] mb-2" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                    No sync records
-                  </h3>
-                  <p className="text-xs text-[#757968] max-w-[280px]">
-                    A historical ledger of personalization events will compile here as you sync files.
-                  </p>
-                </div>
+                <motion.div variants={fadeInUp} className="bg-white/50 border border-zinc-200/60 rounded-[2.5rem] p-24 flex flex-col items-center text-center">
+                  <History className="w-12 h-12 text-zinc-300 mb-6" strokeWidth={1} />
+                  <h3 className="text-xl font-bold text-zinc-900 mb-2">No ledger records</h3>
+                  <p className="text-sm text-zinc-500 max-w-sm">A historical log of sync events will compile here automatically.</p>
+                </motion.div>
               )}
             </motion.div>
           )}
+
         </AnimatePresence>
       </main>
     </div>

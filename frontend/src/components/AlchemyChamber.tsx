@@ -12,11 +12,9 @@ import {
   Layers,
   ArrowRight,
   Filter,
-  CheckSquare,
-  Square,
-  FileText,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  FileText
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,6 +32,9 @@ interface DiffRow {
   current: string;
   selected: boolean;
 }
+
+const springTransition = { type: "spring", stiffness: 300, damping: 30 };
+const fastSpring = { type: "spring", stiffness: 400, damping: 25 };
 
 export function AlchemyChamber({ 
   proposedReplacements, 
@@ -57,12 +58,6 @@ export function AlchemyChamber({
     setRows(initialRows);
   }, [proposedReplacements]);
 
-  const handleToggleSelect = (id: string) => {
-    setRows(prev => prev.map(row => 
-      row.id === id ? { ...row, selected: !row.selected } : row
-    ));
-  };
-
   const handleTextChange = (id: string, text: string) => {
     setRows(prev => prev.map(row => 
       row.id === id ? { ...row, current: text } : row
@@ -81,9 +76,6 @@ export function AlchemyChamber({
   };
 
   const handleFinalCompile = () => {
-    // Build the final replacements map
-    // For selected rows, we use the user-edited current text
-    // For unselected rows, we exclude them entirely (meaning the original text remains in the pptx)
     const compileMap: Record<string, string> = {};
     let count = 0;
     
@@ -111,83 +103,86 @@ export function AlchemyChamber({
   const selectedCount = rows.filter(r => r.selected).length;
 
   return (
-    <div className="space-y-6">
-      {/* Header Info */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-[#EAEAEA] p-6 shadow-sm">
+    <div className="space-y-6 w-full pb-20">
+      
+      {/* Header Command Center */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white/70 backdrop-blur-xl border border-zinc-200/60 p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] rounded-[2rem]"
+      >
         <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="bg-[#476501]/10 text-[#476501] text-[10px] font-mono font-bold px-2 py-0.5 tracking-wider uppercase">
-              Phase 2: Review Chamber
+          <div className="flex items-center gap-2 mb-3">
+            <span className="bg-[#CFEE91]/40 border border-[#CFEE91]/50 text-[#269755] text-[10px] font-mono font-bold px-3 py-1 tracking-widest uppercase rounded-full flex items-center gap-1.5">
+              <Sparkles className="w-3 h-3" /> Synthesis Review
             </span>
           </div>
-          <h2 className="text-3xl font-serif font-bold text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
+          <h2 className="text-3xl font-bold tracking-tight text-zinc-950 mb-2">
             The Alchemy Chamber
           </h2>
-          <p className="text-xs text-[#757968] mt-1 max-w-[550px]">
-            Review Gemini's copywriting proposals side-by-side. Check the ones you wish to apply, edit copies directly, and inspect word overflows before compiling.
+          <p className="text-sm text-zinc-500 max-w-xl font-medium">
+            Review the AI-generated contextual alignments. Approve segments, edit copies manually, and monitor character overflow metrics before compilation.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <button
+        <div className="flex items-center gap-4 shrink-0">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={onCancel}
-            className="border border-[#EAEAEA] bg-white text-[#757968] hover:text-[#111111] px-4 py-2.5 text-xs font-mono font-bold transition-all"
+            className="bg-white border border-zinc-200/80 text-zinc-500 hover:text-zinc-900 px-6 py-3.5 rounded-full text-xs font-mono font-bold tracking-wider transition-all shadow-sm"
           >
             DISCARD
-          </button>
+          </motion.button>
           
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleFinalCompile}
-            className="bg-[#1A1C15] hover:bg-[#2F3129] text-white px-5 py-2.5 text-xs font-mono font-bold transition-all flex items-center gap-2 shadow-sm"
+            className="bg-zinc-950 hover:bg-zinc-800 text-white px-7 py-3.5 rounded-full text-xs font-mono font-bold tracking-wider transition-all flex items-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
           >
-            COMPILE DECK <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+            COMPILE DECK <ArrowRight className="w-4 h-4" />
+          </motion.button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Grid: Left Column is Diff Editor, Right Column is Dossier Drawer */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+        
         {/* Left Side: Diff rows editor */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="xl:col-span-8 space-y-6">
           
           {/* Filters & Bulk selectors */}
-          <div className="bg-white border border-[#EAEAEA] p-4 flex flex-wrap items-center justify-between gap-4 shadow-[0_1px_3px_rgba(0,0,0,0.01)] text-xs font-mono">
-            <div className="flex items-center gap-3">
-              <span className="text-[#757968] font-bold">FILTERS:</span>
-              <div className="flex border border-[#EAEAEA] rounded overflow-hidden">
-                <button
-                  onClick={() => setFilter("all")}
-                  className={`px-3 py-1.5 transition-colors ${filter === "all" ? "bg-[#1A1C15] text-white" : "bg-white text-[#757968] hover:bg-[#FBFBFA]"}`}
-                >
-                  All ({rows.length})
-                </button>
-                <button
-                  onClick={() => setFilter("selected")}
-                  className={`px-3 py-1.5 transition-colors border-l border-r border-[#EAEAEA] ${filter === "selected" ? "bg-[#1A1C15] text-white" : "bg-white text-[#757968] hover:bg-[#FBFBFA]"}`}
-                >
-                  Selected ({selectedCount})
-                </button>
-                <button
-                  onClick={() => setFilter("excluded")}
-                  className={`px-3 py-1.5 transition-colors ${filter === "excluded" ? "bg-[#1A1C15] text-white" : "bg-white text-[#757968] hover:bg-[#FBFBFA]"}`}
-                >
-                  Excluded ({rows.length - selectedCount})
-                </button>
+          <div className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-sm text-xs font-mono">
+            <div className="flex items-center gap-4 pl-2">
+              <div className="flex items-center gap-2 text-zinc-400 font-bold uppercase tracking-widest text-[10px]">
+                <Filter className="w-3.5 h-3.5" /> Filter
+              </div>
+              <div className="flex bg-zinc-100/80 border border-zinc-200/50 rounded-lg p-1">
+                {[
+                  { id: "all", label: `All (${rows.length})` },
+                  { id: "selected", label: `Kept (${selectedCount})` },
+                  { id: "excluded", label: `Dropped (${rows.length - selectedCount})` }
+                ].map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => setFilter(f.id as any)}
+                    className={`px-4 py-1.5 rounded-md font-bold transition-all duration-300 ${
+                      filter === f.id ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-600"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => handleBulkSelect(true)}
-                className="text-[#476501] hover:underline font-bold"
-              >
+            <div className="flex items-center gap-4 pr-2 text-[10px] tracking-widest">
+              <button onClick={() => handleBulkSelect(true)} className="text-[#269755] hover:text-[#1d7240] font-bold transition-colors">
                 SELECT ALL
               </button>
-              <span className="text-[#B0B0A8]">|</span>
-              <button
-                onClick={() => handleBulkSelect(false)}
-                className="text-[#ED6A5E] hover:underline font-bold"
-              >
+              <span className="text-zinc-300">|</span>
+              <button onClick={() => handleBulkSelect(false)} className="text-zinc-400 hover:text-red-500 font-bold transition-colors">
                 EXCLUDE ALL
               </button>
             </div>
@@ -195,177 +190,194 @@ export function AlchemyChamber({
 
           {/* Diff list items */}
           <div className="space-y-4">
-            {filteredRows.length > 0 ? (
-              filteredRows.map((row) => {
-                // Calculate size comparison warning
-                const originalLength = row.original.length;
-                const currentLength = row.current.length;
-                const ratio = currentLength / (originalLength || 1);
-                const isTooLong = ratio > 1.25 && currentLength - originalLength > 15;
-                const percentIncrease = Math.round((ratio - 1) * 100);
+            <AnimatePresence mode="popLayout">
+              {filteredRows.length > 0 ? (
+                filteredRows.map((row) => {
+                  const originalLength = row.original.length;
+                  const currentLength = row.current.length;
+                  const ratio = currentLength / (originalLength || 1);
+                  const isTooLong = ratio > 1.25 && currentLength - originalLength > 15;
+                  const percentIncrease = Math.round((ratio - 1) * 100);
 
-                return (
-                  <motion.div
-                    key={row.id}
-                    layout
-                    className={`border transition-all p-6 relative rounded-sm ${
-                      row.selected 
-                        ? "border-[#476501]/40 bg-white shadow-[0_4px_16px_rgba(71,101,1,0.04)]" 
-                        : "border-[#EAEAEA] bg-[#FAF9F6]/40 opacity-70"
-                    }`}
-                  >
-                    {/* Row Header toolbar */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-[#F5F5F3]">
-                      <div className="flex items-center gap-3">
-                        {/* Segmented control buttons */}
-                        <div className="flex border border-[#EAEAEA] rounded overflow-hidden shadow-xs">
-                          <button
-                            type="button"
-                            onClick={() => setRows(prev => prev.map(r => r.id === row.id ? { ...r, selected: false } : r))}
-                            className={`px-3 py-1.5 text-[10px] font-mono font-bold transition-all flex items-center gap-1.5 ${
-                              !row.selected 
-                                ? "bg-[#757968] text-white" 
-                                : "bg-white text-[#757968] hover:bg-[#FBFBFA]"
-                            }`}
-                          >
-                            <X className="w-3.5 h-3.5" />
-                            Keep Original
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setRows(prev => prev.map(r => r.id === row.id ? { ...r, selected: true } : r))}
-                            className={`px-3 py-1.5 text-[10px] font-mono font-bold transition-all flex items-center gap-1.5 ${
-                              row.selected 
-                                ? "bg-[#476501] text-white" 
-                                : "bg-white text-[#757968] hover:bg-[#FBFBFA]"
-                            }`}
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            Apply Suggestion
-                          </button>
-                        </div>
-
-                        {/* Status Badge */}
-                        <span className={`text-[9px] font-mono font-bold px-2.5 py-1 tracking-wider uppercase rounded-sm ${
-                          row.selected 
-                            ? "bg-[#476501]/10 text-[#476501]" 
-                            : "bg-[#757968]/10 text-[#757968]"
-                        }`}>
-                          {row.selected ? "Applying Personalization" : "Keeping Original Copy"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-3 text-[10px] font-mono">
-                        {row.selected && row.current !== row.proposed && (
-                          <button
-                            onClick={() => handleResetRow(row.id)}
-                            className="text-[#757968] hover:text-[#111111] flex items-center gap-1 hover:underline"
-                            title="Reset to Gemini proposal"
-                          >
-                            <RotateCcw className="w-3 h-3" />
-                            REVERT TO SUGGESTION
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Side-by-Side Diff */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Left: Original */}
-                      <div className="space-y-2">
-                        <span className="text-[9px] font-mono tracking-widest text-[#757968] uppercase font-bold block">
-                          Original presentation text
-                        </span>
-                        <div className="p-3 bg-[#FBFBFA] border border-[#F0EFEA] text-xs leading-relaxed text-[#55594e] font-sans rounded-sm select-none">
-                          {row.original}
-                        </div>
-                      </div>
-
-                      {/* Right: Proposal (Editable) */}
-                      <div className="space-y-2">
-                        <span className="text-[9px] font-mono tracking-widest text-[#476501] uppercase font-bold flex items-center justify-between">
-                          <span>Personalized proposal</span>
-                          <span className="font-normal font-mono text-[9px] text-[#757968] lowercase">
-                            {row.current.length} chars (org: {originalLength})
+                  return (
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={springTransition}
+                      key={row.id}
+                      className={`transition-all p-6 relative rounded-[1.5rem] shadow-sm backdrop-blur-md overflow-hidden ${
+                        row.selected 
+                          ? "bg-white border-2 border-[#269755]/20 shadow-[0_4px_20px_rgba(16,185,129,0.03)]" 
+                          : "bg-white/40 border-2 border-zinc-200/50 opacity-60 hover:opacity-100"
+                      }`}
+                    >
+                      {/* Segmented control / Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-5 border-b border-zinc-100/80">
+                        <div className="flex items-center gap-4">
+                          <div className="flex bg-zinc-100 rounded-lg p-1 border border-zinc-200/60">
+                            <button
+                              type="button"
+                              onClick={() => setRows(prev => prev.map(r => r.id === row.id ? { ...r, selected: false } : r))}
+                              className={`px-4 py-1.5 text-[10px] font-mono font-bold transition-all rounded-md flex items-center gap-1.5 ${
+                                !row.selected ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-700"
+                              }`}
+                            >
+                              <X className="w-3.5 h-3.5" /> Reject
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setRows(prev => prev.map(r => r.id === row.id ? { ...r, selected: true } : r))}
+                              className={`px-4 py-1.5 text-[10px] font-mono font-bold transition-all rounded-md flex items-center gap-1.5 ${
+                                row.selected ? "bg-[#CFEE91]/40 text-[#1d7240] shadow-sm" : "text-zinc-400 hover:text-zinc-700"
+                              }`}
+                            >
+                              <Check className="w-3.5 h-3.5" /> Approve
+                            </button>
+                          </div>
+                          
+                          <span className={`text-[9px] font-mono font-bold px-3 py-1.5 tracking-widest uppercase rounded-full ${
+                            row.selected ? "bg-[#269755]/10 text-[#269755]" : "bg-zinc-200 text-zinc-500"
+                          }`}>
+                            {row.selected ? "Will Sync" : "Preserving Original"}
                           </span>
-                        </span>
-                        <textarea
-                          value={row.current}
-                          onChange={(e) => handleTextChange(row.id, e.target.value)}
-                          disabled={!row.selected}
-                          className={`w-full p-3 text-xs leading-relaxed font-sans focus:outline-none transition-all border rounded-sm ${
-                            !row.selected 
-                              ? "bg-transparent border-[#EAEAEA] text-[#757968] resize-none" 
-                              : isTooLong
-                                ? "bg-white border-[#E4A11B] text-[#111111] focus:border-[#E4A11B] focus:ring-1 focus:ring-[#E4A11B]"
-                                : "bg-white border-[#EAEAEA] text-[#111111] focus:border-[#476501] focus:ring-1 focus:ring-[#476501]"
-                          }`}
-                          rows={3}
-                        />
-                      </div>
-                    </div>
+                        </div>
 
-                    {/* Layout Overflow Alerts */}
-                    {row.selected && isTooLong && (
-                      <div className="mt-4 bg-[#FEF9EC] border border-[#FCE8B2] px-4 py-3 flex items-start gap-2 text-xs font-mono text-[#8C7A5C] leading-normal rounded-sm">
-                        <AlertTriangle className="w-4 h-4 text-[#E4A11B] shrink-0 mt-0.5" />
-                        <div>
-                          <span className="font-bold block mb-0.5">Potential Slide Overflow Warning</span>
-                          Text is {percentIncrease}% longer than original (+{currentLength - originalLength} characters). This might break formatting on standard slide boxes. Try shortening the copy.
+                        <AnimatePresence>
+                          {row.selected && row.current !== row.proposed && (
+                            <motion.button
+                              initial={{ opacity: 0, x: 10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0 }}
+                              onClick={() => handleResetRow(row.id)}
+                              className="text-zinc-400 hover:text-zinc-900 flex items-center gap-1.5 hover:underline text-[10px] font-mono uppercase tracking-widest transition-colors"
+                              title="Reset to AI proposal"
+                            >
+                              <RotateCcw className="w-3 h-3" /> Restore AI Edit
+                            </motion.button>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      {/* Side-by-Side Diff */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Left: Original */}
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase font-bold flex items-center gap-2">
+                            <FileText className="w-3.5 h-3.5" /> Master Template
+                          </span>
+                          <div className="p-4 bg-zinc-50/50 border border-zinc-100 text-xs leading-relaxed text-zinc-500 font-medium rounded-xl select-none h-[calc(100%-24px)] min-h-[100px]">
+                            {row.original}
+                          </div>
+                        </div>
+
+                        {/* Right: Proposal (Editable) */}
+                        <div className="space-y-3">
+                          <span className="text-[10px] font-mono tracking-widest text-[#269755] uppercase font-bold flex items-center justify-between">
+                            <span className="flex items-center gap-2"><Sparkles className="w-3.5 h-3.5" /> Custom Target</span>
+                            <span className={`font-normal lowercase ${isTooLong ? "text-red-500 font-bold" : "text-zinc-400"}`}>
+                              {row.current.length} chars (orig: {originalLength})
+                            </span>
+                          </span>
+                          <textarea
+                            value={row.current}
+                            onChange={(e) => handleTextChange(row.id, e.target.value)}
+                            disabled={!row.selected}
+                            className={`w-full p-4 text-xs leading-relaxed font-semibold focus:outline-none transition-all border rounded-xl h-[calc(100%-24px)] min-h-[100px] ${
+                              !row.selected 
+                                ? "bg-transparent border-zinc-200 text-zinc-400 resize-none opacity-50" 
+                                : isTooLong
+                                  ? "bg-red-50/30 border-red-300 text-zinc-900 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
+                                  : "bg-white border-zinc-200 text-zinc-900 focus:border-[#269755] focus:ring-4 focus:ring-[#269755]/10 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                            }`}
+                          />
                         </div>
                       </div>
-                    )}
-                  </motion.div>
-                );
-              })
-            ) : (
-              <div className="bg-white border border-[#EAEAEA] p-12 text-center text-xs font-mono text-[#757968]">
-                No proposed modifications match the selected filter.
-              </div>
-            )}
+
+                      {/* Layout Overflow Alerts */}
+                      <AnimatePresence>
+                        {row.selected && isTooLong && (
+                          <motion.div 
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="mt-5 bg-red-50 border border-red-100 p-4 flex items-start gap-3 text-xs font-medium text-red-900 leading-relaxed rounded-xl shadow-sm"
+                          >
+                            <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                            <div>
+                              <span className="font-bold block mb-1">Slide Layout Risk</span>
+                              Text is <span className="font-mono bg-red-100 px-1 py-0.5 rounded text-[10px]">{percentIncrease}%</span> longer than original (+{currentLength - originalLength} chars). This may overflow standard presentation bounding boxes. Please compress the copy.
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  );
+                })
+              ) : (
+                <motion.div 
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                  className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] p-16 text-center text-sm font-mono text-zinc-400 flex flex-col items-center"
+                >
+                  <Filter className="w-10 h-10 mb-4 text-zinc-300" strokeWidth={1} />
+                  No proposed modifications match the current view filter.
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
         {/* Right Side: Sponsor mandate details */}
-        <div className="space-y-4">
-          <div className="bg-white border border-[#EAEAEA] p-6 shadow-sm space-y-4">
-            <div className="text-xs font-mono tracking-widest text-[#757968] uppercase font-bold flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-[#476501]" />
+        <div className="xl:col-span-4 space-y-6">
+          
+          <div className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)] rounded-[2rem] flex flex-col gap-4 sticky top-24">
+            <div className="text-[10px] font-mono tracking-widest text-zinc-900 uppercase font-bold flex items-center gap-2 border-b border-zinc-100 pb-4">
+              <Layers className="w-4 h-4 text-[#269755]" />
               Sponsor Dossier Intel
             </div>
             
-            <p className="text-xs text-[#757968] leading-relaxed">
-              Below is the raw intelligence context scraped from the sponsor website. Gemini referenced this text strictly to tailor alignment replacements.
+            <p className="text-xs text-zinc-500 font-medium leading-relaxed">
+              Below is the raw intelligence scraped from the target's domain. The generative engine referenced this data directly to tailor alignment priorities.
             </p>
 
             <button
               onClick={() => setIsDossierOpen(!isDossierOpen)}
-              className="w-full flex items-center justify-between border border-[#EAEAEA] p-3 text-xs font-mono hover:bg-[#FBFBFA]"
+              className="w-full flex items-center justify-between border border-zinc-200 bg-white p-4 text-[10px] font-mono font-bold tracking-widest hover:bg-zinc-50 transition-colors rounded-xl shadow-sm uppercase mt-2 text-zinc-700"
             >
-              <span>{isDossierOpen ? "COLLAPSE DOSSIER" : "EXPAND DOSSIER"}</span>
-              {isDossierOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              <span>{isDossierOpen ? "Collapse Data" : "Expand Raw Data"}</span>
+              <motion.div animate={{ rotate: isDossierOpen ? 180 : 0 }} transition={fastSpring}>
+                <ChevronDown className="w-4 h-4 text-zinc-400" />
+              </motion.div>
             </button>
 
-            {isDossierOpen && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                className="bg-[#FBFBFA] border border-[#EAEAEA] p-4 text-[11px] font-mono text-[#44493A] leading-relaxed max-h-[350px] overflow-y-auto whitespace-pre-wrap"
-              >
-                {scrapedContext || "No scraped context available."}
-              </motion.div>
-            )}
+            <AnimatePresence>
+              {isDossierOpen && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={springTransition}
+                  className="overflow-hidden"
+                >
+                  <div className="bg-zinc-50 border border-zinc-200/80 p-5 rounded-xl text-[11px] font-mono text-zinc-700 font-medium leading-relaxed max-h-[400px] overflow-y-auto whitespace-pre-wrap shadow-inner">
+                    {scrapedContext || "No scraped context available."}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="bg-blue-50/50 border border-blue-100/50 rounded-xl p-5 mt-4 space-y-2.5">
+              <div className="text-[10px] font-mono tracking-widest text-blue-600 uppercase font-bold flex items-center gap-2">
+                <Info className="w-4 h-4" />
+                Formatting Guarantee
+              </div>
+              <p className="text-[11px] text-blue-800/80 leading-relaxed font-medium">
+                Rejecting a replacement preserves the exact XML slide text as it exists in the master deck. Font weights, colors, and layout structures are perfectly maintained.
+              </p>
+            </div>
           </div>
 
-          <div className="bg-[#476501]/5 border border-[#476501]/10 p-6 space-y-3">
-            <div className="text-xs font-mono tracking-widest text-[#476501] uppercase font-bold flex items-center gap-1.5">
-              <Info className="w-4 h-4" />
-              Safety Check
-            </div>
-            <p className="text-xs text-[#44493a] leading-relaxed">
-              If you exclude a replacement, FundSync will preserve the exact slide text as it was in the master pitch deck. All font styling, colors, and paragraph structures are maintained.
-            </p>
-          </div>
         </div>
       </div>
     </div>

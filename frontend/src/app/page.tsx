@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { 
   Upload, 
@@ -12,7 +13,8 @@ import {
   ChevronDown, 
   ChevronRight, 
   Loader2, 
-  UserPlus 
+  UserPlus,
+  ArrowRight
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence, Variants } from "framer-motion";
@@ -20,26 +22,35 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import Dashboard from "@/components/Dashboard";
 import { AlchemyChamber } from "@/components/AlchemyChamber";
-import { AgenticFeed } from "@/components/AgenticFeed";
+import { AmbientBackground } from "@/components/ui/AmbientBackground";
+import { MagneticButton } from "@/components/ui/MagneticButton";
 
-// Framer Motion configuration variants
-const fadeInUpVariants: Variants = {
-  hidden: { opacity: 0, y: 15 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: { type: "spring", stiffness: 100, damping: 20 }
-  }
-};
+// Premium Spring Physics
+const springTransition = { type: "spring", stiffness: 300, damping: 30 };
+const fastSpring = { type: "spring", stiffness: 400, damping: 25 };
 
+// Framer Motion staggered orchestration
 const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.1,
-    }
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 }
+  },
+  exit: { 
+    opacity: 0,
+    transition: { staggerChildren: 0.05, staggerDirection: -1 }
   }
+};
+
+const fadeInUp: Variants = {
+  hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
+  visible: { 
+    opacity: 1, 
+    y: 0, 
+    filter: "blur(0px)",
+    transition: springTransition
+  },
+  exit: { opacity: 0, y: -10, filter: "blur(4px)", transition: { duration: 0.2 } }
 };
 
 export default function Home() {
@@ -62,6 +73,8 @@ export default function Home() {
   const [proposedReplacements, setProposedReplacements] = useState<Record<string, string>>({});
   const [sessionId, setSessionId] = useState("");
   const [scrapedContext, setScrapedContext] = useState("");
+  const [processingFileUrl, setProcessingFileUrl] = useState("");
+  const [processingFileName, setProcessingFileName] = useState("");
 
   // Result Metrics
   const [replacementsCount, setReplacementsCount] = useState(0);
@@ -98,9 +111,9 @@ export default function Home() {
     if (appState === "fetching") {
       setLogStage(0);
       const timers = [
-        setTimeout(() => setLogStage(1), 1000),
-        setTimeout(() => setLogStage(2), 2500),
-        setTimeout(() => setLogStage(3), 4000),
+        setTimeout(() => setLogStage(1), 1200),
+        setTimeout(() => setLogStage(2), 2800),
+        setTimeout(() => setLogStage(3), 4500),
       ];
       return () => timers.forEach(clearTimeout);
     }
@@ -122,30 +135,42 @@ export default function Home() {
     if (!file || !url) return;
     
     setAppState("fetching");
+    setProcessingFileName(file.name);
     
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("target_url", url);
-    formData.append("tone_formal", String(toneFormal));
-    formData.append("tone_technical", String(toneTechnical));
-    formData.append("custom_focus", customFocus);
-
     try {
+      // 1. Upload guest file securely via backend
+      const uploadData = new FormData();
+      uploadData.append("file", file);
+      const uploadRes = await fetch("http://localhost:8000/api/upload-guest", { method: "POST", body: uploadData });
+      
+      if (!uploadRes.ok) {
+        let err = "Failed to upload demo file.";
+        try { const d = await uploadRes.json(); err = d.detail || err; } catch {}
+        throw new Error(err);
+      }
+      
+      const { file_url } = await uploadRes.json();
+      setProcessingFileUrl(file_url);
+
+      // 2. Synthesize replacements
       const response = await fetch("http://localhost:8000/api/propose-replacements", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          file_url: file_url,
+          target_url: url,
+          tone_formal: toneFormal,
+          tone_technical: toneTechnical,
+          custom_focus: customFocus
+        })
       });
 
       if (!response.ok) {
         let errMsg = "Error processing replacements.";
         try {
           const errData = await response.json();
-          errMsg = errData.detail || errMsg;
-        } catch {
-          try {
-            errMsg = await response.text() || errMsg;
-          } catch {}
-        }
+          errMsg = typeof errData.detail === 'string' ? errData.detail : JSON.stringify(errData.detail);
+        } catch {}
         throw new Error(errMsg);
       }
 
@@ -157,7 +182,7 @@ export default function Home() {
 
     } catch (error: any) {
       console.error("Propose replacements failed:", error);
-      toast.error(error.message || "Failed to contact AI. Please verify that the FastAPI backend is running.");
+      toast.error(error.message || "Failed to contact AI. Please verify backend is running.");
       setAppState("idle");
     }
   };
@@ -169,11 +194,11 @@ export default function Home() {
     try {
       const response = await fetch("http://localhost:8000/api/compile-deck", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           session_id: sessionId,
+          file_url: processingFileUrl,
+          original_filename: processingFileName,
           replacements: finalReplacements
         })
       });
@@ -182,16 +207,11 @@ export default function Home() {
         throw new Error("Failed to compile deck. Session may have expired.");
       }
 
-      const count = response.headers.get("X-Replacements-Count") || "0";
-      setReplacementsCount(parseInt(count, 10));
-
-      const slidesCount = response.headers.get("X-Slides-Modified") || "0";
-      setSlidesModifiedCount(parseInt(slidesCount, 10));
-
-      const blob = await response.blob();
-      const tempDownloadUrl = window.URL.createObjectURL(blob);
+      const responseData = await response.json();
       
-      setDownloadUrl(tempDownloadUrl);
+      setReplacementsCount(responseData.replacements_count || 0);
+      setSlidesModifiedCount(responseData.slides_modified || 0);
+      setDownloadUrl(responseData.download_url);
       setAppState("success");
 
     } catch (error: any) {
@@ -213,15 +233,22 @@ export default function Home() {
     setCustomFocus("");
     setToneFormal(50);
     setToneTechnical(50);
+    setProcessingFileUrl("");
+    setProcessingFileName("");
   };
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#F9F8F6] flex flex-col items-center justify-center font-sans">
-        <Loader2 className="w-10 h-10 text-[#476501] animate-spin mb-4" />
-        <span className="font-mono text-xs text-[#757968] tracking-widest uppercase">
-          Loading secure workspace...
-        </span>
+      <div className="min-h-[100dvh] bg-[#F3EFE7] flex flex-col items-center justify-center font-sans">
+        <Loader2 className="w-8 h-8 text-zinc-900 animate-spin mb-6" />
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, repeat: Infinity, repeatType: "reverse" }}
+          className="text-[10px] font-mono tracking-[0.2em] text-zinc-500 uppercase"
+        >
+          Securing Workspace
+        </motion.div>
       </div>
     );
   }
@@ -229,19 +256,18 @@ export default function Home() {
   // Auth gate render
   if (user) {
     return (
-      <div className="min-h-screen bg-[#F9F8F6] flex flex-col font-sans text-[#1A1A1A]">
-        {/* Top Navbar */}
-        <header className="w-full flex items-center justify-between px-8 py-6 border-b border-[#EAEAEA] bg-[#FBFBFA]/80 backdrop-blur-md sticky top-0 z-50">
+      <div className="min-h-[100dvh] bg-[#F3EFE7] flex flex-col font-sans text-zinc-900 selection:bg-emerald-200 selection:text-emerald-950">
+        <header className="w-full flex items-center justify-between px-6 lg:px-12 py-5 border-b border-zinc-200/60 bg-white/70 backdrop-blur-xl sticky top-0 z-50 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
           <div 
             onClick={resetState}
-            className="font-serif font-bold text-2xl text-[#476501] cursor-pointer hover:opacity-85 transition-opacity" 
-            style={{ fontFamily: "var(--font-playfair-display), serif" }}
+            className="font-bold text-xl tracking-tight text-zinc-950 cursor-pointer flex items-center gap-2 group" 
           >
+            <Image src="/FundSync_Logo.svg" alt="FundSync Logo" width={48} height={48} className="transition-transform group-hover:scale-95" />
             FundSync
           </div>
           <div className="flex items-center gap-4">
-            <span className="bg-[#476501]/10 text-[#476501] font-mono text-[10px] font-bold px-2 py-1 tracking-wider uppercase rounded-sm">
-              Member Workspace
+            <span className="bg-[#CFEE91]/40 text-[#1d7240] border border-[#CFEE91] font-mono text-[9px] font-bold px-2 py-1 tracking-widest uppercase rounded-full">
+              Member
             </span>
           </div>
         </header>
@@ -252,367 +278,329 @@ export default function Home() {
 
   // Guest flow render
   return (
-    <div className="min-h-screen bg-[#F9F8F6] flex flex-col font-sans text-[#1A1A1A] selection:bg-[#CFEE91] selection:text-[#476501]">
-      {/* Top Navbar */}
-      <header className="w-full flex items-center justify-between px-8 py-6 border-b border-[#EAEAEA]">
+    <div className="min-h-[100dvh] bg-[#F3EFE7] flex flex-col font-sans text-zinc-900 selection:bg-emerald-200 selection:text-emerald-950 relative overflow-hidden">
+      
+      <AmbientBackground />
+
+      <header className="w-full flex items-center justify-between px-6 lg:px-12 py-6 relative z-50">
         <div 
           onClick={resetState}
-          className="font-serif font-bold text-2xl text-[#476501] cursor-pointer hover:opacity-85 transition-opacity" 
-          style={{ fontFamily: "var(--font-playfair-display), serif" }}
+          className="font-bold text-xl tracking-tight text-zinc-950 cursor-pointer flex items-center gap-2 group" 
         >
+          <Image src="/FundSync_Logo.svg" alt="FundSync Logo" width={48} height={48} className="transition-transform group-hover:scale-95 group-active:scale-90" />
           FundSync
         </div>
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-[#44493a]">
-          <Link href="/about" className="hover:text-[#476501] transition-colors">About</Link>
-        </nav>
         <Link href="/auth">
-          <motion.button 
-            whileTap={{ scale: 0.97 }}
-            className="bg-[#476501] hover:bg-[#5f7f1f] text-white px-6 py-2.5 rounded-sm transition-colors text-sm font-medium focus:outline-none flex items-center gap-2 shadow-sm font-mono text-xs font-bold"
+          <MagneticButton 
+            className="bg-zinc-900 text-white px-5 py-2.5 rounded-full transition-all text-[11px] font-mono font-semibold tracking-widest flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-zinc-800"
           >
-            <UserPlus className="w-4 h-4" /> MEMBER SIGN IN
-          </motion.button>
+            WORKSPACE <ArrowRight className="w-3.5 h-3.5" />
+          </MagneticButton>
         </Link>
       </header>
 
-      <main className="flex-1 flex flex-col items-center pt-12 px-4 pb-24 max-w-[1200px] w-full mx-auto">
+      <main className="flex-1 flex flex-col items-center justify-center w-full max-w-[1600px] mx-auto relative z-10 px-4 py-12">
         <AnimatePresence mode="wait">
-          {/* STATE: IDLE (GUEST FORM) */}
+          
+          {/* STATE: IDLE (Asymmetric Split Screen) */}
           {appState === "idle" && (
             <motion.div 
               key="idle"
               initial="hidden"
               animate="visible"
-              exit="hidden"
+              exit="exit"
               variants={staggerContainer}
-              className="w-full max-w-[1000px] flex flex-col items-center"
+              className="w-full grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center"
             >
-              <motion.h1 
-                variants={fadeInUpVariants}
-                className="text-[54px] font-serif font-bold tracking-tight mb-4 text-[#111111] text-center leading-[1.1]" 
-                style={{ fontFamily: "var(--font-playfair-display), serif" }}
-              >
-                Sync your outreach.
-              </motion.h1>
-              
-              <motion.p 
-                variants={fadeInUpVariants}
-                className="text-[#44493A] text-md mb-12 max-w-[550px] text-center leading-relaxed"
-              >
-                Transform standard pitch decks into targeted, hyper-personalized sponsor communications in seconds using dynamic tonal alignment.
-              </motion.p>
-
-              <motion.div 
-                variants={fadeInUpVariants}
-                className="w-full max-w-[800px] bg-white border border-[#EAEAEA] shadow-[0_2px_10px_rgba(0,0,0,0.01)] flex flex-col overflow-hidden"
-              >
-                {/* Magic Dropzone */}
-                <motion.div 
-                  layout
-                  className={`relative p-12 flex flex-col items-center justify-center transition-colors ${file ? "bg-[#FBFBFA]/30 border-b border-[#EAEAEA] cursor-default" : "bg-[#FBFBFA]/50 hover:bg-[#F0EFEA]/50 min-h-[350px] cursor-pointer"}`}
-                >
-                  {!file && (
-                    <input 
-                      type="file" 
-                      accept=".pptx"
-                      required
-                      onChange={(e) => setFile(e.target.files?.[0] || null)}
-                      className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                    />
-                  )}
-                  {!file ? (
-                    <>
-                      <div className="w-20 h-20 bg-[#F0EFEA] rounded-2xl flex items-center justify-center mb-8">
-                        <Upload className="w-8 h-8 text-[#757968]" strokeWidth={1.5} />
-                      </div>
-                      <h3 className="font-serif text-3xl font-bold mb-4 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>Drop your Master Deck</h3>
-                      <p className="text-[#757968] text-center text-md max-w-[340px] leading-relaxed mb-8">
-                        Upload your master .pptx template to begin synthesis.
-                      </p>
-                      <div className="bg-[#EAE8E0] text-[#757968] font-mono text-[10px] font-bold px-3 py-1.5 rounded tracking-widest uppercase">
-                        MAX 15MB
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex items-center justify-between w-full">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-[#CFEE91]/30 rounded-xl flex items-center justify-center">
-                          <Check className="w-5 h-5 text-[#476501]" />
-                        </div>
-                        <div className="text-left">
-                          <h4 className="font-bold text-[#111111]">{file.name}</h4>
-                          <p className="text-xs text-[#757968] font-mono mt-1 tracking-wider uppercase">{(file.size / 1024 / 1024).toFixed(2)} MB • READY</p>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={(e) => { e.preventDefault(); setFile(null); }}
-                        className="relative z-20 text-xs font-mono text-[#757968] hover:text-[#111111] underline tracking-widest uppercase font-bold"
-                      >
-                        Change
-                      </button>
-                    </div>
-                  )}
+              {/* Left Column: Typography */}
+              <div className="col-span-1 lg:col-span-6 flex flex-col justify-center lg:pr-12">
+                <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-zinc-200 shadow-sm mb-8 w-max">
+                  <Sparkles className="w-3.5 h-3.5 text-[#269755]" />
+                  <span className="text-[10px] font-mono font-semibold tracking-widest text-zinc-600 uppercase">Hyper-Personalized Outreach</span>
                 </motion.div>
+                
+                <motion.h1 
+                  variants={fadeInUp}
+                  className="text-5xl sm:text-6xl lg:text-[5.5rem] font-bold tracking-tighter mb-6 text-zinc-950 leading-[0.95]" 
+                >
+                  Sync your pitch <br/>
+                  <span className="text-zinc-400">in seconds.</span>
+                </motion.h1>
+                
+                <motion.p 
+                  variants={fadeInUp}
+                  className="text-zinc-500 text-lg sm:text-xl max-w-[500px] leading-relaxed font-light"
+                >
+                  Transform standard pitch decks into targeted, deeply aligned sponsor communications using contextual AI extraction.
+                </motion.p>
 
-                {/* Morphing URL Input (Only visible after file drop) */}
-                <AnimatePresence>
-                  {file && (
-                    <motion.form 
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      onSubmit={handleProposeReplacements} 
-                      className="px-12 py-10 flex flex-col space-y-8 bg-white"
-                    >
-                      <div>
-                        <div className="mb-4 text-xs font-mono tracking-widest text-[#757968] uppercase font-bold">
-                          Target Sponsor Intel
-                        </div>
-                        <div className="relative border-b border-[#EAEAEA] pb-4 flex items-center gap-4 group-focus-within:border-[#476501] transition-colors">
-                          <Link2 className="w-6 h-6 text-[#757968]" strokeWidth={1.5} />
-                          <input
-                            type="url"
-                            placeholder="https://sponsor-website.com"
-                            value={url}
-                            onChange={(e) => setUrl(e.target.value)}
-                            required
-                            className="w-full outline-none bg-transparent placeholder-[#B0B0A8] text-[#111111] text-xl"
-                          />
-                        </div>
+                <motion.div variants={fadeInUp} className="mt-12 flex items-center gap-6">
+                  <div className="flex -space-x-3">
+                    {[1,2,3].map(i => (
+                      <div key={i} className={`w-10 h-10 rounded-full border-2 border-[#FAFAFA] bg-zinc-200 flex items-center justify-center overflow-hidden z-[${4-i}]`}>
+                        <img src={`https://i.pravatar.cc/100?img=${i+12}`} alt="User" className="w-full h-full object-cover" />
                       </div>
+                    ))}
+                  </div>
+                  <div className="text-xs text-zinc-500 font-medium">
+                    <span className="text-zinc-900 font-bold">1,200+</span> pitch decks<br/>compiled this week.
+                  </div>
+                </motion.div>
+              </div>
 
-                      {/* Advanced Tuning Accordion */}
-                      <div className="border border-[#EAEAEA] p-5 rounded-sm bg-[#FBFBFA]/50 relative z-20">
-                        <button
-                          type="button"
-                          onClick={() => setIsTonePanelOpen(!isTonePanelOpen)}
-                          className="w-full flex items-center justify-between text-[11px] font-mono tracking-widest text-[#757968] uppercase font-bold focus:outline-none"
-                        >
-                          <span className="flex items-center gap-2">
-                            <Sliders className="w-4 h-4" />
-                            Advanced AI Tuning
-                          </span>
-                          {isTonePanelOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                        </button>
+              {/* Right Column: Liquid Glass Upload Widget */}
+              <motion.div variants={fadeInUp} className="col-span-1 lg:col-span-6 flex justify-center lg:justify-end w-full">
+                <div className="w-full max-w-[540px] bg-white/60 backdrop-blur-2xl border border-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_24px_48px_-12px_rgba(0,0,0,0.08)] rounded-[2rem] p-2 relative">
+                  
+                  {/* Subtle inner gradient */}
+                  <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
 
-                        <AnimatePresence>
-                          {isTonePanelOpen && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              exit={{ opacity: 0, height: 0 }}
-                              className="pt-6 mt-6 border-t border-[#EAEAEA] space-y-6 overflow-hidden"
-                            >
-                              {/* Tone Sliders */}
-                              <div className="space-y-4">
-                                <div className="flex justify-between text-[11px] font-mono">
-                                  <span className="text-[#757968] uppercase tracking-wider">Creative</span>
-                                  <span className="font-bold text-[#476501] uppercase tracking-wider">
-                                    {toneFormal < 35 ? "Narrative" : toneFormal > 65 ? "Corporate" : "Balanced"}
-                                  </span>
-                                  <span className="text-[#757968] uppercase tracking-wider">Formal</span>
-                                </div>
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="100"
-                                  value={toneFormal}
-                                  onChange={(e) => setToneFormal(parseInt(e.target.value, 10))}
-                                  className="w-full h-1.5 bg-[#EAEAEA] rounded-lg appearance-none cursor-pointer accent-[#476501]"
-                                />
-                              </div>
-
-                              <div className="space-y-4">
-                                <div className="flex justify-between text-[11px] font-mono">
-                                  <span className="text-[#757968] uppercase tracking-wider">CSR / Community</span>
-                                  <span className="font-bold text-[#476501] uppercase tracking-wider">
-                                    {toneTechnical < 35 ? "Social" : toneTechnical > 65 ? "Tech" : "Balanced"}
-                                  </span>
-                                  <span className="text-[#757968] uppercase tracking-wider">Technical</span>
-                                </div>
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="100"
-                                  value={toneTechnical}
-                                  onChange={(e) => setToneTechnical(parseInt(e.target.value, 10))}
-                                  className="w-full h-1.5 bg-[#EAEAEA] rounded-lg appearance-none cursor-pointer accent-[#476501]"
-                                />
-                              </div>
-
-                              <div className="space-y-2 pt-2">
-                                <label className="text-[10px] font-mono text-[#757968] tracking-widest uppercase block font-bold">
-                                  Custom directive
-                                </label>
-                                <textarea
-                                  placeholder="E.g., Focus alignment strictly on their Stripe integrations..."
-                                  value={customFocus}
-                                  onChange={(e) => setCustomFocus(e.target.value)}
-                                  rows={2}
-                                  className="w-full p-3 bg-white border border-[#EAEAEA] text-sm text-[#111111] focus:border-[#476501] outline-none resize-none font-sans shadow-sm"
-                                />
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                      
-                      <motion.button 
-                        whileTap={{ scale: 0.98 }}
-                        type="submit"
-                        disabled={!file || !url}
-                        className="w-full bg-[#476501] text-white h-16 flex items-center justify-center gap-3 hover:bg-[#5f7f1f] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md rounded-sm mt-4"
+                  <form onSubmit={handleProposeReplacements} className="bg-white/80 rounded-[1.75rem] border border-zinc-100 p-8 relative flex flex-col space-y-8">
+                    
+                    {/* Drag & Drop Zone */}
+                    <div className="relative group">
+                      <input 
+                        type="file" 
+                        accept=".pptx"
+                        required
+                        onChange={(e) => setFile(e.target.files?.[0] || null)}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <motion.div 
+                        whileHover={{ scale: 0.99, backgroundColor: "#f4f4f5" }}
+                        transition={fastSpring}
+                        className={`w-full h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-colors ${
+                          file ? "border-[#269755]/30 bg-[#CFEE91]/40/50" : "border-zinc-200 bg-zinc-50/50 group-hover:border-zinc-300"
+                        }`}
                       >
-                        <span className="font-serif text-2xl tracking-wide font-bold" style={{ fontFamily: "var(--font-playfair-display), serif" }}>Generate Pitch</span>
-                        <Sparkles className="w-5 h-5" strokeWidth={2} />
-                      </motion.button>
-                    </motion.form>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-              
-              <motion.div 
-                variants={fadeInUpVariants}
-                className="mt-8 text-xs font-mono text-[#757968] flex items-center gap-2 tracking-widest uppercase"
-              >
-                <Lock className="w-3.5 h-3.5" />
-                Local browser encryption on guest resources.
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 ${file ? 'bg-[#CFEE91] text-[#269755]' : 'bg-white shadow-sm text-zinc-400'}`}>
+                          {file ? <Check className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
+                        </div>
+                        <span className="text-xs font-mono font-medium text-zinc-600 truncate max-w-[80%]">
+                          {file ? file.name : "Drop Master .pptx here"}
+                        </span>
+                      </motion.div>
+                    </div>
+
+                    {/* URL Input */}
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase font-bold px-1">Target Sponsor URL</label>
+                      <div className="relative flex items-center focus-within:ring-2 focus-within:ring-[#269755]/20 rounded-xl overflow-hidden transition-all shadow-sm border border-zinc-200 bg-white">
+                        <div className="pl-4 pr-2">
+                          <Link2 className="w-4 h-4 text-zinc-400" />
+                        </div>
+                        <input
+                          type="url"
+                          placeholder="https://sponsor-website.com"
+                          value={url}
+                          onChange={(e) => setUrl(e.target.value)}
+                          required
+                          className="w-full h-12 outline-none bg-transparent placeholder-zinc-300 text-sm font-medium text-zinc-900"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Collapsible Tone Panel */}
+                    <div className="bg-zinc-50/80 border border-zinc-100 rounded-2xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setIsTonePanelOpen(!isTonePanelOpen)}
+                        className="w-full h-12 px-4 flex items-center justify-between text-xs font-semibold text-zinc-600 focus:outline-none"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Sliders className="w-3.5 h-3.5 text-zinc-400" />
+                          Alignment Parameters
+                        </span>
+                        <motion.div animate={{ rotate: isTonePanelOpen ? 180 : 0 }} transition={fastSpring}>
+                          <ChevronDown className="w-4 h-4 text-zinc-400" />
+                        </motion.div>
+                      </button>
+
+                      <AnimatePresence>
+                        {isTonePanelOpen && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={springTransition}
+                            className="px-4 pb-5 space-y-5"
+                          >
+                            <div className="h-px w-full bg-zinc-200/60 mb-2" />
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-[10px] font-mono text-zinc-400 font-medium">
+                                <span>Creative</span>
+                                <span className="text-zinc-900 font-bold">
+                                  {toneFormal < 35 ? "Narrative" : toneFormal > 65 ? "Corporate" : "Balanced"}
+                                </span>
+                                <span>Formal</span>
+                              </div>
+                              <input
+                                type="range" min="0" max="100" value={toneFormal}
+                                onChange={(e) => setToneFormal(parseInt(e.target.value, 10))}
+                                className="w-full h-1 bg-zinc-200 rounded-full appearance-none cursor-pointer accent-zinc-900"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-[10px] font-mono text-zinc-400 font-medium">
+                                <span>Social / CSR</span>
+                                <span className="text-zinc-900 font-bold">
+                                  {toneTechnical < 35 ? "Impact" : toneTechnical > 65 ? "Tech" : "Balanced"}
+                                </span>
+                                <span>Technical</span>
+                              </div>
+                              <input
+                                type="range" min="0" max="100" value={toneTechnical}
+                                onChange={(e) => setToneTechnical(parseInt(e.target.value, 10))}
+                                className="w-full h-1 bg-zinc-200 rounded-full appearance-none cursor-pointer accent-zinc-900"
+                              />
+                            </div>
+                            <div className="space-y-2 pt-1">
+                              <textarea
+                                placeholder="Custom directives (e.g., 'Focus on open source')..."
+                                value={customFocus}
+                                onChange={(e) => setCustomFocus(e.target.value)}
+                                rows={2}
+                                className="w-full p-3 bg-white border border-zinc-200 rounded-xl text-xs text-zinc-900 focus:border-zinc-400 focus:ring-1 focus:ring-zinc-200 outline-none resize-none shadow-sm transition-all"
+                              />
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+
+                    {/* Submit */}
+                    <MagneticButton 
+                      type="submit"
+                      disabled={!file || !url}
+                      className="w-full bg-zinc-950 text-white h-14 rounded-xl flex items-center justify-center gap-2 hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
+                    >
+                      <span className="text-sm font-semibold tracking-wide">Synthesize Pitch</span>
+                      <Sparkles className="w-4 h-4" />
+                    </MagneticButton>
+
+                    <div className="flex items-center justify-center gap-2 text-[10px] font-mono text-zinc-400 tracking-widest uppercase mt-4">
+                      <Lock className="w-3 h-3" /> Encrypted Processing
+                    </div>
+                  </form>
+                </div>
               </motion.div>
             </motion.div>
           )}
 
-          {/* STATE: FETCHING PROPOSALS (MODERN STEPPER LOADING CIRCLES) */}
+          {/* STATE: FETCHING PROPOSALS (Staggered Waterfall Loaders) */}
           {appState === "fetching" && (
             <motion.div 
               key="fetching"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              className="w-full max-w-[650px] flex flex-col items-center py-12"
+              initial="hidden" animate="visible" exit="exit" variants={staggerContainer}
+              className="w-full max-w-2xl flex flex-col items-center py-20"
             >
-              {/* Spinning Circular Progress */}
-              <div className="relative w-32 h-32 mb-10 flex items-center justify-center">
-                {/* Outer spin ring */}
-                <div className="absolute w-full h-full rounded-full border-4 border-[#EAEAEA] border-t-[#476501] animate-spin" />
-                {/* Inner pulse circle */}
-                <div className="absolute w-20 h-20 rounded-full bg-[#CFEE91]/20 animate-pulse flex items-center justify-center">
-                  <Sparkles className="w-8 h-8 text-[#476501]" />
+              <motion.div variants={fadeInUp} className="relative w-24 h-24 mb-12 flex items-center justify-center">
+                <div className="absolute w-full h-full rounded-full border border-zinc-200 border-t-zinc-900 animate-spin" style={{ animationDuration: '2s' }} />
+                <div className="absolute w-16 h-16 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center shadow-sm">
+                  <Sparkles className="w-6 h-6 text-zinc-900 animate-pulse" />
                 </div>
+              </motion.div>
+
+              <motion.h2 variants={fadeInUp} className="text-2xl font-bold tracking-tight mb-12 text-zinc-900 text-center">
+                Personalizing presentation layers...
+              </motion.h2>
+
+              <div className="w-full space-y-4 text-left">
+                {[
+                  { step: 1, title: "Extract Presentation Copy", desc: "Recursively traversing shapes and table structures." },
+                  { step: 2, title: "Scrape Target Context", desc: "Analyzing sponsor URL for CSR and structural goals." },
+                  { step: 3, title: "Tonal Synthesis", desc: "Gemini generating layout-constrained replacements." }
+                ].map((item, idx) => {
+                  const isActive = logStage >= item.step;
+                  const isCurrent = logStage === item.step - 1;
+                  return (
+                    <motion.div 
+                      key={item.step} variants={fadeInUp} 
+                      className={`flex items-start gap-4 p-5 rounded-2xl border transition-all duration-700 ${
+                        isActive ? "bg-white border-zinc-200 shadow-sm" : 
+                        isCurrent ? "bg-zinc-50 border-zinc-200" : "bg-transparent border-transparent opacity-40"
+                      }`}
+                    >
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-colors duration-700 ${
+                        isActive ? "bg-zinc-900 text-white" : isCurrent ? "border border-zinc-300 text-zinc-500" : "border border-zinc-200 text-zinc-300"
+                      }`}>
+                        {isActive ? <Check className="w-3 h-3" /> : <div className={`w-1.5 h-1.5 rounded-full ${isCurrent ? 'bg-zinc-400 animate-ping' : 'bg-zinc-300'}`} />}
+                      </div>
+                      <div>
+                        <h4 className={`text-sm font-semibold transition-colors duration-700 ${isActive ? "text-zinc-900" : isCurrent ? "text-zinc-700" : "text-zinc-400"}`}>
+                          {item.title}
+                        </h4>
+                        <p className={`text-xs mt-1 transition-colors duration-700 ${isActive || isCurrent ? "text-zinc-500" : "text-zinc-400"}`}>
+                          {item.desc}
+                        </p>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
-
-              <h2 className="text-3xl font-serif font-bold tracking-tight mb-2 text-[#111111] text-center" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                Personalizing Pitch
-              </h2>
-              <p className="text-[#757968] mb-12 text-center text-sm font-mono max-w-[420px]">
-                {logStage === 0 && "Decomposing slide paragraph layers recursively..."}
-                {logStage === 1 && "Scraping target sponsor context data via Firecrawl..."}
-                {logStage >= 2 && "Synthesizing copies using Gemini tone controls..."}
-              </p>
-
-              <AgenticFeed logStage={logStage} />
             </motion.div>
           )}
 
-          {/* STATE: ALCHEMY CHAMBER (DIFF EDITOR REVIEW) */}
+          {/* STATE: ALCHEMY CHAMBER */}
           {appState === "alchemy" && (
-            <motion.div
-              key="alchemy"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="w-full max-w-[1000px]"
-            >
-              <AlchemyChamber
-                proposedReplacements={proposedReplacements}
-                scrapedContext={scrapedContext}
-                onCancel={resetState}
-                onCompile={handleCompileDeck}
-              />
+            <motion.div key="alchemy" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} transition={springTransition} className="w-full max-w-[1200px]">
+              <AlchemyChamber proposedReplacements={proposedReplacements} scrapedContext={scrapedContext} onCancel={resetState} onCompile={handleCompileDeck} />
             </motion.div>
           )}
 
           {/* STATE: COMPILING PITCH DECK */}
           {appState === "compiling" && (
-            <motion.div
-              key="compiling"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center py-24"
-            >
-              <Loader2 className="w-12 h-12 text-[#476501] animate-spin mb-4" />
-              <h3 className="text-2xl font-serif font-bold text-[#111111] mb-2" style={{ fontFamily: "var(--font-playfair-display), serif" }}>
-                Injecting customized variables and compiling...
-              </h3>
-              <p className="text-[#757968] text-xs font-mono">
-                Ensuring PPTX structure is uncorrupted and format fonts match.
-              </p>
+            <motion.div key="compiling" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="flex flex-col items-center justify-center py-32">
+              <motion.div variants={fadeInUp} className="w-16 h-16 rounded-2xl bg-zinc-50 border border-zinc-200 flex items-center justify-center mb-8 shadow-sm">
+                <Loader2 className="w-6 h-6 text-zinc-900 animate-spin" />
+              </motion.div>
+              <motion.h3 variants={fadeInUp} className="text-xl font-semibold text-zinc-900 mb-3 tracking-tight">
+                Injecting variables and compiling...
+              </motion.h3>
+              <motion.p variants={fadeInUp} className="text-zinc-400 text-xs font-mono tracking-wide">
+                Executing anti-corruption XML checks
+              </motion.p>
             </motion.div>
           )}
 
-          {/* STATE: SUCCESS DOWNLOAD SCREEN */}
+          {/* STATE: SUCCESS */}
           {appState === "success" && (
-            <motion.div 
-              key="success"
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
-              variants={staggerContainer}
-              className="w-full max-w-[700px] bg-white border border-[#EAEAEA] p-16 flex flex-col items-center shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
-            >
-              <motion.div 
-                variants={fadeInUpVariants}
-                className="w-16 h-16 bg-[#CFEE91] rounded-xl flex items-center justify-center mb-8"
-              >
-                <Check className="w-8 h-8 text-[#476501]" strokeWidth={2.5} />
+            <motion.div key="success" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="w-full max-w-2xl bg-white border border-zinc-200/60 rounded-[2.5rem] p-12 lg:p-16 flex flex-col items-center shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] text-center relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-b from-[#CFEE91]/40/30 to-transparent pointer-events-none" />
+              
+              <motion.div variants={fadeInUp} className="w-16 h-16 bg-[#CFEE91] rounded-2xl flex items-center justify-center mb-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] relative z-10">
+                <Check className="w-7 h-7 text-[#269755]" strokeWidth={2.5} />
               </motion.div>
               
-              <motion.h1 
-                variants={fadeInUpVariants}
-                className="text-5xl font-serif font-bold tracking-tight mb-4 text-[#111111]" 
-                style={{ fontFamily: "var(--font-playfair-display), serif" }}
-              >
-                Pitch Personalization Complete.
+              <motion.h1 variants={fadeInUp} className="text-3xl lg:text-4xl font-bold tracking-tight mb-4 text-zinc-900 relative z-10">
+                Synthesis Complete
               </motion.h1>
               
-              <motion.p 
-                variants={fadeInUpVariants}
-                className="text-[#44493A] text-md mb-12 text-center max-w-[480px] leading-relaxed"
-              >
-                Your pitch deck has been recursively aligned. Download the customized file below.
+              <motion.p variants={fadeInUp} className="text-zinc-500 text-sm mb-12 max-w-md relative z-10">
+                Your pitch deck has been recursively aligned with the target sponsor. Ready for download.
               </motion.p>
 
-              <motion.div 
-                variants={fadeInUpVariants}
-                className="w-full grid grid-cols-2 gap-4 mb-12"
-              >
-                <div className="border border-[#EAEAEA] p-6 flex flex-col items-center justify-center text-center">
-                  <div className="text-3xl font-serif font-bold mb-2 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>{replacementsCount}</div>
-                  <div className="text-[10px] font-mono text-[#757968] tracking-widest uppercase">Text Strings Adapted</div>
+              <motion.div variants={fadeInUp} className="w-full grid grid-cols-2 gap-4 mb-10 relative z-10">
+                <div className="bg-zinc-50 rounded-2xl p-6 flex flex-col items-center justify-center border border-zinc-100">
+                  <div className="text-3xl font-bold mb-1 text-zinc-900">{replacementsCount}</div>
+                  <div className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase">Strings Adapted</div>
                 </div>
-                <div className="border border-[#EAEAEA] p-6 flex flex-col items-center justify-center text-center">
-                  <div className="text-3xl font-serif font-bold mb-2 text-[#111111]" style={{ fontFamily: "var(--font-playfair-display), serif" }}>{slidesModifiedCount}</div>
-                  <div className="text-[10px] font-mono text-[#757968] tracking-widest uppercase">Slides Modified</div>
+                <div className="bg-zinc-50 rounded-2xl p-6 flex flex-col items-center justify-center border border-zinc-100">
+                  <div className="text-3xl font-bold mb-1 text-zinc-900">{slidesModifiedCount}</div>
+                  <div className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase">Slides Modified</div>
                 </div>
               </motion.div>
 
               <motion.a 
-                variants={fadeInUpVariants}
-                whileTap={{ scale: 0.97 }}
-                href={downloadUrl || "#"}
-                download={`FundSync_Personalized_Pitch.pptx`}
-                className="w-full max-w-[400px] bg-[#2F3129] text-white h-14 flex items-center justify-center gap-3 hover:bg-[#1A1C15] transition-colors mb-8 rounded-sm font-sans font-medium text-lg"
+                variants={fadeInUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={fastSpring}
+                href={downloadUrl || "#"} download={`FundSync_Personalized_Pitch.pptx`}
+                className="w-full bg-zinc-950 text-white h-14 flex items-center justify-center gap-3 hover:bg-zinc-800 transition-colors mb-6 rounded-xl font-semibold shadow-[0_4px_14px_rgba(0,0,0,0.1)] relative z-10"
               >
-                <Download className="w-5 h-5" strokeWidth={2} />
-                <span>Download Personalized PPTX</span>
+                <Download className="w-4 h-4" strokeWidth={2} />
+                <span>Download .pptx</span>
               </motion.a>
               
-              <motion.button 
-                variants={fadeInUpVariants}
-                whileTap={{ scale: 0.97 }}
-                onClick={resetState}
-                className="text-[#476501] font-mono text-xs uppercase tracking-widest hover:opacity-70 transition-opacity"
-              >
+              <motion.button variants={fadeInUp} whileHover={{ opacity: 0.7 }} onClick={resetState} className="text-zinc-400 font-mono text-[10px] uppercase tracking-widest transition-opacity relative z-10">
                 Start New Session
               </motion.button>
             </motion.div>
@@ -622,12 +610,12 @@ export default function Home() {
       
       {/* Footer */}
       {(appState === "idle" || appState === "success") && (
-        <footer className="w-full px-12 py-8 border-t border-[#EAEAEA] flex flex-col md:flex-row items-center justify-between font-mono text-xs text-[#111111] font-bold bg-[#FBFBFA]/30">
+        <footer className="w-full px-6 lg:px-12 py-8 border-t border-zinc-200/60 flex flex-col md:flex-row items-center justify-between font-mono text-[10px] text-zinc-400 font-medium relative z-50">
           <div>© 2026 FundSync. All rights reserved.</div>
-          <div className="flex items-center gap-6 mt-4 md:mt-0 font-medium text-[#757968]">
-            <Link href="/about" className="hover:text-[#111111] transition-colors">About</Link>
-            <a href="#" className="hover:text-[#111111] transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-[#111111] transition-colors">Terms of Service</a>
+          <div className="flex items-center gap-6 mt-4 md:mt-0">
+            <Link href="/about" className="hover:text-zinc-900 transition-colors">About</Link>
+            <a href="#" className="hover:text-zinc-900 transition-colors">Privacy Policy</a>
+            <a href="#" className="hover:text-zinc-900 transition-colors">Terms of Service</a>
           </div>
         </footer>
       )}
