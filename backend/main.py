@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, Form, Request, HTTPException, BackgroundTasks
+from fastapi import FastAPI, UploadFile, File, Form, Request, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -6,6 +6,7 @@ import os
 import shutil
 import uuid
 import json
+import re
 from dotenv import load_dotenv
 
 # Load environment variables
