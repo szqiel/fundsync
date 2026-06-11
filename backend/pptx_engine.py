@@ -1,6 +1,7 @@
 import os
+import io
 from pptx import Presentation
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 def get_text_frames_from_shape(shape) -> list:
     """
@@ -38,15 +39,15 @@ def normalize_text(text: str) -> str:
     normalized = " ".join(normalized.split())
     return normalized
 
-def replace_text_in_pptx(input_path: str, output_path: str, replacements: dict) -> Tuple[int, int]:
+def replace_text_in_pptx(input_file: Union[str, io.BytesIO], replacements: dict) -> Tuple[int, int, io.BytesIO]:
     """
-    Ingests a .pptx file, iterates through all shapes recursively, and replaces text.
+    Ingests a .pptx file or buffer, iterates through all shapes recursively, and replaces text.
     First tries run-level replacement to preserve local formatting and hyperlinks. 
     If the text is split across runs, falls back to merging runs at paragraph level.
     If exact matches fail, falls back to normalized paragraph comparison.
-    Returns a tuple of (total_replacements_made, total_slides_modified).
+    Returns a tuple of (total_replacements_made, total_slides_modified, output_buffer).
     """
-    prs = Presentation(input_path)
+    prs = Presentation(input_file)
     replacements_made = 0
     slides_modified = 0
 
@@ -123,27 +124,33 @@ def replace_text_in_pptx(input_path: str, output_path: str, replacements: dict) 
         if slide_had_replacement:
             slides_modified += 1
 
-    prs.save(output_path)
-    return replacements_made, slides_modified
+    output_buffer = io.BytesIO()
+    prs.save(output_buffer)
+    output_buffer.seek(0)
+    return replacements_made, slides_modified, output_buffer
 
-def validate_pptx(file_path: str) -> bool:
+def validate_pptx(file_buffer: Union[str, io.BytesIO]) -> bool:
     """
-    Anti-Corruption Validation: Attempts to re-parse the saved .pptx file.
+    Anti-Corruption Validation: Attempts to re-parse the saved .pptx buffer.
     Returns True if valid, False if corrupted.
     """
     try:
-        Presentation(file_path)
+        if isinstance(file_buffer, io.BytesIO):
+            file_buffer.seek(0)
+        Presentation(file_buffer)
+        if isinstance(file_buffer, io.BytesIO):
+            file_buffer.seek(0)
         return True
     except Exception as e:
-        print(f"Anti-Corruption check failed for {file_path}: {e}")
+        print(f"Anti-Corruption check failed: {e}")
         return False
 
-def extract_text_from_pptx(input_path: str) -> List[str]:
+def extract_text_from_pptx(input_file: Union[str, io.BytesIO]) -> List[str]:
     """
     Extracts all unique text paragraphs from the presentation recursively to feed into the AI.
     This preserves full sentences, table contents, and grouped text boxes.
     """
-    prs = Presentation(input_path)
+    prs = Presentation(input_file)
     paragraphs = []
     
     for slide in prs.slides:

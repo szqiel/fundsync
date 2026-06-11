@@ -1,5 +1,5 @@
-from fastapi import FastAPI, UploadFile, File, Form, Request, HTTPException, BackgroundTasks
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi import FastAPI, File, Form, Request, HTTPException, BackgroundTasks
+from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 import os
@@ -11,9 +11,21 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+import asyncio
+import time
+import io
+import httpx
+from supabase import create_client, Client
+from collections import defaultdict
+from contextlib import asynccontextmanager
 from pydantic import BaseModel
 from pptx_engine import replace_text_in_pptx, validate_pptx, extract_text_from_pptx
 from ai_engine import scrape_target_url, generate_replacements_with_gemini
+
+# Initialize Supabase Admin Client
+supabase_url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "")
+supabase_key = os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY", "")
+supabase_client: Client = create_client(supabase_url, supabase_key) if supabase_url else None
 
 # --- Step 2.2: Middleware for 15MB Size Limit ---
 class LimitUploadSize(BaseHTTPMiddleware):
@@ -32,10 +44,52 @@ class LimitUploadSize(BaseHTTPMiddleware):
                     )
         return await call_next(request)
 
-app = FastAPI(title="FundSync API")
+# --- Rate Limiter Middleware ---
+rate_limit_records = defaultdict(list)
+RATE_LIMIT_MAX_REQUESTS = 5
+RATE_LIMIT_WINDOW = 60 # seconds
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if request.url.path.startswith("/api/"):
+            client_ip = request.client.host if request.client else "unknown"
+            current_time = time.time()
+            
+            rate_limit_records[client_ip] = [
+                t for t in rate_limit_records[client_ip] 
+                if current_time - t < RATE_LIMIT_WINDOW
+            ]
+            
+            if len(rate_limit_records[client_ip]) >= RATE_LIMIT_MAX_REQUESTS:
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Rate limit exceeded. Maximum 5 requests per minute."}
+                )
+                
+            rate_limit_records[client_ip].append(current_time)
+            
+        return await call_next(request)
+
+# --- Boot-Time Zombie Purge ---
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("Boot-time purge: Cleaning up tmp/ directory...")
+    os.makedirs("tmp", exist_ok=True)
+    for filename in os.listdir("tmp"):
+        file_path = os.path.join("tmp", filename)
+        try:
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+                print(f"Purged zombie file: {filename}")
+        except Exception as e:
+            print(f"Failed to delete {file_path}: {e}")
+    yield
+
+app = FastAPI(title="FundSync API", lifespan=lifespan)
 
 # 15MB limit = 15 * 1024 * 1024 bytes
 app.add_middleware(LimitUploadSize, max_upload_size=15728640)
+app.add_middleware(RateLimitMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -65,25 +119,26 @@ class CompileRequest(BaseModel):
 
 @app.post("/api/propose-replacements")
 async def propose_replacements(
-    file: UploadFile = File(...),
+    file_url: str = Form(...),
     target_url: str = Form(...),
     tone_formal: int = Form(50),
     tone_technical: int = Form(50),
     custom_focus: str = Form("")
 ):
-    if not file.filename.endswith(".pptx"):
-        raise HTTPException(status_code=400, detail="Invalid file type. Only .pptx is allowed.")
-
     session_id = str(uuid.uuid4())
-    input_path = f"tmp/input_{session_id}.pptx"
 
     try:
-        # Save uploaded file to disk
-        with open(input_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        # Download file directly into RAM
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(file_url)
+            if resp.status_code != 200:
+                raise HTTPException(status_code=400, detail="Failed to download file from Supabase.")
+            file_buffer = io.BytesIO(resp.content)
 
-        # 1. Extract text from the uploaded Master Deck
-        presentation_text = extract_text_from_pptx(input_path)
+        # 1. Extract text from the loaded buffer
+        def run_extract():
+            return extract_text_from_pptx(file_buffer)
+        presentation_text = await asyncio.to_thread(run_extract)
         
         # 2. Scrape the Sponsor URL (includes Safe Mode fallback)
         sponsor_context = await scrape_target_url(target_url)
@@ -108,130 +163,118 @@ async def propose_replacements(
         }
 
     except Exception as e:
-        cleanup_temp_files(input_path)
         raise HTTPException(status_code=500, detail=str(e))
+
+class CompileRequest(BaseModel):
+    session_id: str
+    file_url: str
+    replacements: dict
 
 @app.post("/api/compile-deck")
 async def compile_deck(
-    request: CompileRequest,
-    background_tasks: BackgroundTasks
+    request: CompileRequest
 ):
-    session_id = request.session_id
-    replacements = request.replacements
-
-    input_path = f"tmp/input_{session_id}.pptx"
-    output_path = f"tmp/output_{session_id}.pptx"
-
-    if not os.path.exists(input_path):
-        raise HTTPException(
-            status_code=400, 
-            detail="Session expired or file not found. Please upload the pitch deck again."
-        )
-
     try:
+        # Download master deck into RAM
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(request.file_url)
+            if resp.status_code != 200:
+                raise HTTPException(status_code=400, detail="Failed to download master deck.")
+            input_buffer = io.BytesIO(resp.content)
+
         # 4. Process the presentation via the document engine
-        replacements_made, slides_modified = replace_text_in_pptx(input_path, output_path, replacements)
+        def run_engine():
+            return replace_text_in_pptx(input_buffer, request.replacements)
+            
+        replacements_made, slides_modified, output_buffer = await asyncio.to_thread(run_engine)
 
         # 5. Anti-Corruption Validation
-        if not validate_pptx(output_path):
+        def run_validation():
+            return validate_pptx(output_buffer)
+        if not await asyncio.to_thread(run_validation):
             raise HTTPException(status_code=500, detail="Document corruption detected during generation. XML structure is invalid.")
 
-        # Return the modified file as a stream with the custom metrics header
-        headers = {
-            "X-Replacements-Count": str(replacements_made),
-            "X-Slides-Modified": str(slides_modified)
-        }
+        # 6. Upload directly to Supabase Storage (bypassing Vercel download limits)
+        if not supabase_client:
+            raise HTTPException(status_code=500, detail="Supabase not configured.")
+            
+        output_buffer.seek(0)
+        output_filename = f"generated/{uuid.uuid4()}_FundSync.pptx"
         
-        # Add background task to clean up files after the response is sent
-        background_tasks.add_task(cleanup_temp_files, input_path, output_path)
-        
-        return FileResponse(
-            path=output_path, 
-            filename=f"FundSync_personalized.pptx", 
-            media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-            headers=headers
+        res = supabase_client.storage.from_("master-decks").upload(
+            output_filename, 
+            output_buffer.read(), 
+            {"content-type": "application/vnd.openxmlformats-officedocument.presentationml.presentation"}
         )
+        
+        # 7. Get public URL
+        public_url_data = supabase_client.storage.from_("master-decks").get_public_url(output_filename)
+        # Handle dict or string depending on supabase-py version
+        public_url = public_url_data if isinstance(public_url_data, str) else public_url_data.get('publicUrl', public_url_data)
+        
+        return {
+            "status": "success",
+            "download_url": public_url,
+            "replacements_count": replacements_made,
+            "slides_modified": slides_modified
+        }
 
-    except HTTPException as he:
-        cleanup_temp_files(input_path, output_path)
-        raise he
     except Exception as e:
-        cleanup_temp_files(input_path, output_path)
         raise HTTPException(status_code=500, detail=str(e))
 
 import cloudconvert
 
 @app.post("/api/generate-thumbnail")
-def generate_thumbnail(
-    background_tasks: BackgroundTasks,
-    file: UploadFile = File(...)
+async def generate_thumbnail(
+    file_url: str = Form(...)
 ):
-    if not file.filename.endswith(".pptx"):
-        raise HTTPException(status_code=400, detail="Invalid file type. Only .pptx is allowed.")
-        
     api_key = os.getenv("CLOUDCONVERT_API_KEY")
     if not api_key:
         raise HTTPException(status_code=500, detail="Missing CLOUDCONVERT_API_KEY in backend .env")
         
     cloudconvert.configure(api_key=api_key, sandbox=False)
     
-    session_id = str(uuid.uuid4())
-    os.makedirs("tmp", exist_ok=True)
-    input_path = os.path.abspath(f"tmp/thumb_in_{session_id}.pptx")
-    output_png = os.path.abspath(f"tmp/thumb_out_{session_id}.png")
-    
     try:
-        content = file.file.read()
+        print("Calling CloudConvert to securely render thumbnail asynchronously from URL...")
         
-        with open(input_path, "wb") as buffer:
-            buffer.write(content)
-            
-        print("Calling CloudConvert to securely render thumbnail...")
-        job = cloudconvert.Job.create(payload={
-            "tasks": {
-                "import-my-file": {
-                    "operation": "import/upload"
-                },
-                "convert-my-file": {
-                    "operation": "convert",
-                    "input": "import-my-file",
-                    "input_format": "pptx",
-                    "output_format": "png",
-                    "pages": "1-1"
-                },
-                "export-my-file": {
-                    "operation": "export/url",
-                    "input": "convert-my-file"
+        def run_cloudconvert_job():
+            job = cloudconvert.Job.create(payload={
+                "tasks": {
+                    "import-my-file": {
+                        "operation": "import/url",
+                        "url": file_url
+                    },
+                    "convert-my-file": {
+                        "operation": "convert",
+                        "input": "import-my-file",
+                        "input_format": "pptx",
+                        "output_format": "png",
+                        "pages": "1-1"
+                    },
+                    "export-my-file": {
+                        "operation": "export/url",
+                        "input": "convert-my-file"
+                    }
                 }
-            }
-        })
-        
-        upload_task_id = job['tasks'][0]['id']
-        upload_task = cloudconvert.Task.find(id=upload_task_id)
-        cloudconvert.Task.upload(file_name=input_path, task=upload_task)
-        
-        print("Waiting for CloudConvert job completion...")
-        job = cloudconvert.Job.wait(id=job['id'])
-        
-        for task in job['tasks']:
-            if task['name'] == 'export-my-file' and task['status'] == 'finished':
-                file_info = task['result']['files'][0]
-                cloudconvert.download(filename=output_png, url=file_info['url'])
-                break
+            })
             
-        if os.path.exists(output_png):
-            background_tasks.add_task(cleanup_temp_files, input_path, output_png)
-            return FileResponse(
-                path=output_png,
-                filename="thumbnail.png",
-                media_type="image/png"
-            )
-        else:
-            raise HTTPException(status_code=500, detail="Failed to produce output image from CloudConvert.")
+            job_result = cloudconvert.Job.wait(id=job['id'])
             
-    except HTTPException:
-        cleanup_temp_files(input_path)
-        raise
+            for task in job_result['tasks']:
+                if task['name'] == 'export-my-file' and task['status'] == 'finished':
+                    file_info = task['result']['files'][0]
+                    return file_info['url']
+            return None
+                    
+        png_url = await asyncio.to_thread(run_cloudconvert_job)
+            
+        if png_url:
+            async with httpx.AsyncClient() as client:
+                png_resp = await client.get(png_url)
+                if png_resp.status_code == 200:
+                    return Response(content=png_resp.content, media_type="image/png")
+                    
+        raise HTTPException(status_code=500, detail="Failed to produce output image from CloudConvert.")
+            
     except Exception as e:
-        cleanup_temp_files(input_path)
         raise HTTPException(status_code=500, detail=str(e))

@@ -84,6 +84,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
   const [logStage, setLogStage] = useState(0);
   const [proposedReplacements, setProposedReplacements] = useState<Record<string, string>>({});
   const [sessionId, setSessionId] = useState("");
+  const [processingFileUrl, setProcessingFileUrl] = useState("");
   const [scrapedContext, setScrapedContext] = useState("");
   const [replacementsCount, setReplacementsCount] = useState(0);
   const [slidesModifiedCount, setSlidesModifiedCount] = useState(0);
@@ -350,48 +351,53 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
   const handleProposeReplacements = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate we have a file source
-    let fileToProcess: File | Blob | null = null;
+    let fileUrlToSend = "";
     let selectedDeckName = "";
     
     if (customFile) {
-      fileToProcess = customFile;
       selectedDeckName = customFile.name;
+      // In Mock mode, fake the URL
+      if (isMockMode) {
+        fileUrlToSend = "https://mock-supabase.com/temp.pptx";
+      } else {
+        // Upload custom file temporarily to Supabase to get a URL for the stateless backend
+        try {
+          const tempPath = `temp/${user.id}/${Math.random().toString(36).substring(7)}_${customFile.name}`;
+          const { error: uploadError } = await supabase.storage.from("master-decks").upload(tempPath, customFile);
+          if (uploadError) throw uploadError;
+          
+          const { data } = supabase.storage.from("master-decks").getPublicUrl(tempPath);
+          fileUrlToSend = data.publicUrl;
+        } catch (err) {
+          console.error("Failed to upload custom file to cloud for processing:", err);
+          toast.error("Failed to upload custom file for processing.");
+          return;
+        }
+      }
     } else if (selectedDeckId) {
       const deck = decks.find(d => d.id === selectedDeckId);
       if (deck) {
         selectedDeckName = deck.name;
-        // In live mode, we fetch from Storage. In Mock mode, we create a dummy blob for endpoint.
         if (isMockMode) {
-          // Send a tiny valid zip mock structure or plain blob
-          fileToProcess = new Blob(["mock_pptx_content"], { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" });
+          fileUrlToSend = "https://mock-supabase.com/library.pptx";
         } else {
-          try {
-            const { data, error } = await supabase.storage
-              .from("master-decks")
-              .download(deck.storage_path);
-            if (error) throw error;
-            fileToProcess = data;
-          } catch (err) {
-            console.error(err);
-            toast.error("Failed to fetch presentation from Cloud Storage.");
-            return;
-          }
+          const { data } = supabase.storage.from("master-decks").getPublicUrl(deck.storage_path);
+          fileUrlToSend = data.publicUrl;
         }
       }
     }
 
-    if (!fileToProcess || !targetUrl) {
+    if (!fileUrlToSend || !targetUrl) {
       toast.error("Please provide a pitch deck and a target website URL.");
       return;
     }
 
     setIsProcessing(true);
     setProcessingState("fetching");
+    setProcessingFileUrl(fileUrlToSend);
 
     const formData = new FormData();
-    // In live mode, send filename if possible
-    formData.append("file", fileToProcess, selectedDeckName || "presentation.pptx");
+    formData.append("file_url", fileUrlToSend);
     formData.append("target_url", targetUrl);
     formData.append("tone_formal", String(toneFormal));
     formData.append("tone_technical", String(toneTechnical));
@@ -487,6 +493,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
         },
         body: JSON.stringify({
           session_id: sessionId,
+          file_url: processingFileUrl,
           replacements: finalReplacements
         })
       });
@@ -495,16 +502,14 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
         throw new Error("Failed to compile final deck. Cache might have expired.");
       }
 
-      // Read metrics headers
-      const replacementsCountHeader = response.headers.get("X-Replacements-Count") || "0";
-      const slidesModifiedHeader = response.headers.get("X-Slides-Modified") || "0";
+      const responseData = await response.json();
       
-      setReplacementsCount(parseInt(replacementsCountHeader, 10));
-      setSlidesModifiedCount(parseInt(slidesModifiedHeader, 10));
-
-      const blob = await response.blob();
-      const tempDownloadUrl = window.URL.createObjectURL(blob);
-      setDownloadUrl(tempDownloadUrl);
+      const repCount = responseData.replacements_count || 0;
+      const slidesMod = responseData.slides_modified || 0;
+      
+      setReplacementsCount(repCount);
+      setSlidesModifiedCount(slidesMod);
+      setDownloadUrl(responseData.download_url);
 
       // Save to History Log
       let selectedDeckName = "Custom_Upload.pptx";
@@ -521,7 +526,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
         hostname = hostname.charAt(0).toUpperCase() + hostname.slice(1).split(".")[0];
       } catch {}
 
-      saveHistoryItem(selectedDeckName, hostname, parseInt(replacementsCountHeader, 10), parseInt(slidesModifiedHeader, 10));
+      saveHistoryItem(selectedDeckName, hostname, repCount, slidesMod);
 
       setProcessingState("success");
     } catch (err: any) {
