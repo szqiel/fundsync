@@ -811,9 +811,9 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                 </div>
               ) : (
                 /* STATE WORKFLOW */
-                <div className="w-full max-w-[1000px] mx-auto h-[calc(100vh-12rem)] flex flex-col justify-center">
+                <div className="w-full max-w-[1000px] mx-auto flex flex-col">
                   {processingState === "fetching" && (
-                    <motion.div key="fetching" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="flex flex-col items-center py-20">
+                    <motion.div key="fetching" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="flex flex-col items-center justify-center min-h-[calc(100vh-16rem)]">
                       <motion.div variants={fadeInUp} className="relative w-24 h-24 mb-12 flex items-center justify-center">
                         <div className="absolute w-full h-full rounded-full border border-zinc-200 border-t-zinc-900 animate-spin" style={{ animationDuration: '2s' }} />
                         <div className="absolute w-16 h-16 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center shadow-sm">
@@ -846,13 +846,13 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                   )}
 
                   {processingState === "alchemy" && (
-                    <motion.div key="alchemy" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} className="w-full">
+                    <motion.div key="alchemy" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} className="w-full py-10">
                       <AlchemyChamber proposedReplacements={proposedReplacements} scrapedContext={scrapedContext} onCancel={resetProcessingState} onCompile={handleCompileDeck} />
                     </motion.div>
                   )}
 
                   {processingState === "compiling" && (
-                    <motion.div key="compiling" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="flex flex-col items-center justify-center py-32">
+                    <motion.div key="compiling" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="flex flex-col items-center justify-center min-h-[calc(100vh-16rem)]">
                       <motion.div variants={fadeInUp} className="w-16 h-16 rounded-2xl bg-zinc-50 border border-zinc-200 flex items-center justify-center mb-8 shadow-sm">
                         <Loader2 className="w-6 h-6 text-zinc-900 animate-spin" />
                       </motion.div>
@@ -862,7 +862,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                   )}
 
                   {processingState === "success" && (
-                    <motion.div key="success" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="max-w-2xl mx-auto bg-white border border-zinc-200/60 rounded-[2.5rem] p-12 flex flex-col items-center shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] text-center">
+                    <motion.div key="success" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="max-w-2xl mx-auto bg-white border border-zinc-200/60 rounded-[2.5rem] p-12 flex flex-col items-center shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] text-center my-auto mt-20">
                       <motion.div variants={fadeInUp} className="w-16 h-16 bg-[#CFEE91] rounded-2xl flex items-center justify-center mb-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
                         <Check className="w-7 h-7 text-[#269755]" strokeWidth={2.5} />
                       </motion.div>
