@@ -98,25 +98,13 @@ async def generate_replacements_with_gemini(
     # Format the paragraphs list so Gemini can easily identify exact matches
     paragraphs_json = json.dumps(presentation_paragraphs, indent=2)
 
-    prompt = f"""
+    system_instruction = f"""
     You are an expert copywriter. Your task is to personalize specific text segments (paragraphs or phrases) from a master pitch deck to align with a target sponsor's mission, CSR goals, and core values.
-
-    Target Sponsor Context:
-    ---
-    {sponsor_context}
-    ---
 
     Copywriting & Alignment Guidelines:
     ---
     {tone_str if tone_str else "Adapt the segments to align with the sponsor in a balanced, professional manner."}
     ---
-
-    Here is a list of exact text paragraphs extracted from the Master Pitch Deck:
-    ---
-    {paragraphs_json}
-    ---
-
-    Identify which of these paragraphs can be customized to appeal to the sponsor. 
 
     CRITICAL LENGTH & QUALITY CONSTRAINTS:
     - To prevent presentation layout breakages, the character count of each rewritten value (value) MUST NOT exceed 1.15x (115%) of the character count of its original paragraph (key).
@@ -126,13 +114,27 @@ async def generate_replacements_with_gemini(
     - If you cannot customize a paragraph within this strict length constraint, do NOT include it in the returned JSON (omit the key entirely). Do not return keys mapped to unchanged text.
 
     You MUST return a JSON object mapping the EXACT original paragraph (keys) to your newly rewritten paragraph (values).
-    The keys in the JSON object MUST exactly match a string from the Master Pitch Deck list above, character-for-character, including spacing and punctuation.
+    The keys in the JSON object MUST exactly match a string from the Master Pitch Deck list provided by the user, character-for-character, including spacing and punctuation.
 
     Format:
     {{
       "Exact Original Paragraph From List": "Newly rewritten paragraph tailored to sponsor",
       "{{SPONSOR_NAME}}": "Actual Sponsor Name"
     }}
+    """
+
+    user_prompt = f"""
+    Target Sponsor Context:
+    ---
+    {sponsor_context}
+    ---
+
+    Here is a list of exact text paragraphs extracted from the Master Pitch Deck:
+    ---
+    {paragraphs_json}
+    ---
+
+    Identify which of these paragraphs can be customized to appeal to the sponsor, and return the JSON mapping.
     """
 
     # Models list prioritizing available stable Gemini 1.5 options
@@ -149,13 +151,14 @@ async def generate_replacements_with_gemini(
             print(f"Attempting content generation with {model_name}...")
             model = genai.GenerativeModel(
                 model_name, 
-                generation_config={"response_mime_type": "application/json"}
+                generation_config={"response_mime_type": "application/json"},
+                system_instruction=system_instruction
             )
             # Make the API call asynchronous if the SDK supports it, or wrap in a thread block
             import asyncio
             # For genai, generate_content_async is supported
             response = await asyncio.wait_for(
-                model.generate_content_async(prompt),
+                model.generate_content_async(user_prompt),
                 timeout=30.0
             )
             
