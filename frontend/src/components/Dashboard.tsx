@@ -385,8 +385,10 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     e.preventDefault();
     
     let fileUrlToSend = "";
+    let selectedDeckName = "";
     
     if (customFile) {
+      selectedDeckName = customFile.name;
       // In Mock mode, fake the URL
       if (isMockMode) {
         fileUrlToSend = "https://mock-supabase.com/temp.pptx";
@@ -407,6 +409,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     } else if (selectedDeckId) {
       const deck = decks.find(d => d.id === selectedDeckId);
       if (deck) {
+        selectedDeckName = deck.name;
         if (isMockMode) {
           fileUrlToSend = "https://mock-supabase.com/library.pptx";
         } else {
