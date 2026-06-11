@@ -207,16 +207,11 @@ export default function Home() {
         throw new Error("Failed to compile deck. Session may have expired.");
       }
 
-      const count = response.headers.get("X-Replacements-Count") || "0";
-      setReplacementsCount(parseInt(count, 10));
-
-      const slidesCount = response.headers.get("X-Slides-Modified") || "0";
-      setSlidesModifiedCount(parseInt(slidesCount, 10));
-
-      const blob = await response.blob();
-      const tempDownloadUrl = window.URL.createObjectURL(blob);
+      const responseData = await response.json();
       
-      setDownloadUrl(tempDownloadUrl);
+      setReplacementsCount(responseData.replacements_count || 0);
+      setSlidesModifiedCount(responseData.slides_modified || 0);
+      setDownloadUrl(responseData.download_url);
       setAppState("success");
 
     } catch (error: any) {
@@ -238,6 +233,8 @@ export default function Home() {
     setCustomFocus("");
     setToneFormal(50);
     setToneTechnical(50);
+    setProcessingFileUrl("");
+    setProcessingFileName("");
   };
 
   if (authLoading) {

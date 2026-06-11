@@ -207,6 +207,7 @@ async def compile_deck(
 
         # 4. Process the presentation via the document engine
         def run_engine():
+            print(f"DEBUG: Compile Deck Replacements received: {len(request.replacements)}")
             return replace_text_in_pptx(input_buffer, request.replacements)
             
         replacements_made, slides_modified, output_buffer = await asyncio.to_thread(run_engine)
