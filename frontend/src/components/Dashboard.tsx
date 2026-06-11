@@ -688,7 +688,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
           
           {/* TAB 1: STUDIO */}
           {activeTab === "studio" && (
-            <motion.div key="studio" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="w-full max-w-[1200px] h-full">
+            <motion.div key="studio" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="w-full max-w-[1200px] mx-auto h-full">
               {!isProcessing ? (
                 <div className="space-y-6">
                   <motion.div variants={fadeInUp} className="mb-8 px-2">
