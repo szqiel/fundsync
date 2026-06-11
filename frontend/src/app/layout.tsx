@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 
@@ -13,14 +13,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const playfair = Playfair_Display({
-  variable: "--font-playfair-display",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
   title: "FundSync",
-  description: "Sync your outreach.",
+  description: "Hyper-personalize pitch decks with AI.",
+  icons: {
+    icon: "/FundSync_Logo.svg",
+  },
 };
 
 export default function RootLayout({
@@ -30,7 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} font-sans antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         {children}
         <Toaster position="top-center" richColors />
       </body>

@@ -137,12 +137,11 @@ async def generate_replacements_with_gemini(
     Identify which of these paragraphs can be customized to appeal to the sponsor, and return the JSON mapping.
     """
 
-    # Models list prioritizing available stable Gemini 1.5 options
+    # Models list prioritizing available stable Gemini options
     models_to_try = [
-        'gemini-1.5-pro',
-        'gemini-1.5-flash',
-        'gemini-1.5-flash-8b',
-        'gemini-pro'
+        'gemini-3.5-flash',
+        'gemini-2.5-flash',
+        'gemini-flash-latest',
     ]
     
     last_error = None
@@ -178,6 +177,5 @@ async def generate_replacements_with_gemini(
             print(f"Model {model_name} failed or timed out: {e}. Trying fallback...")
 
     raise RuntimeError(
-        f"All Gemini models failed to generate content. Last error: {last_error}. "
-        "Please check your API key, project rate limits, or quota details in Google AI Studio."
+        f"API Error: {repr(last_error)}. Please check your API key, project rate limits, or quota details in Google AI Studio."
     )
