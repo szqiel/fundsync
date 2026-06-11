@@ -73,6 +73,8 @@ export default function Home() {
   const [proposedReplacements, setProposedReplacements] = useState<Record<string, string>>({});
   const [sessionId, setSessionId] = useState("");
   const [scrapedContext, setScrapedContext] = useState("");
+  const [processingFileUrl, setProcessingFileUrl] = useState("");
+  const [processingFileName, setProcessingFileName] = useState("");
 
   // Result Metrics
   const [replacementsCount, setReplacementsCount] = useState(0);
@@ -133,30 +135,42 @@ export default function Home() {
     if (!file || !url) return;
     
     setAppState("fetching");
+    setProcessingFileName(file.name);
     
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("target_url", url);
-    formData.append("tone_formal", String(toneFormal));
-    formData.append("tone_technical", String(toneTechnical));
-    formData.append("custom_focus", customFocus);
-
     try {
+      // 1. Upload guest file securely via backend
+      const uploadData = new FormData();
+      uploadData.append("file", file);
+      const uploadRes = await fetch("http://localhost:8000/api/upload-guest", { method: "POST", body: uploadData });
+      
+      if (!uploadRes.ok) {
+        let err = "Failed to upload demo file.";
+        try { const d = await uploadRes.json(); err = d.detail || err; } catch {}
+        throw new Error(err);
+      }
+      
+      const { file_url } = await uploadRes.json();
+      setProcessingFileUrl(file_url);
+
+      // 2. Synthesize replacements
       const response = await fetch("http://localhost:8000/api/propose-replacements", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          file_url: file_url,
+          target_url: url,
+          tone_formal: toneFormal,
+          tone_technical: toneTechnical,
+          custom_focus: customFocus
+        })
       });
 
       if (!response.ok) {
         let errMsg = "Error processing replacements.";
         try {
           const errData = await response.json();
-          errMsg = errData.detail || errMsg;
-        } catch {
-          try {
-            errMsg = await response.text() || errMsg;
-          } catch {}
-        }
+          errMsg = typeof errData.detail === 'string' ? errData.detail : JSON.stringify(errData.detail);
+        } catch {}
         throw new Error(errMsg);
       }
 
@@ -183,6 +197,8 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           session_id: sessionId,
+          file_url: processingFileUrl,
+          original_filename: processingFileName,
           replacements: finalReplacements
         })
       });

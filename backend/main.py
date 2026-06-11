@@ -165,6 +165,27 @@ async def propose_replacements(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/api/upload-guest")
+async def upload_guest(file: UploadFile = File(...)):
+    if not supabase_client:
+        raise HTTPException(status_code=500, detail="Supabase not configured.")
+    
+    file_content = await file.read()
+    if len(file_content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Guest demo files are limited to 5MB. Please log in for larger files.")
+        
+    safe_name = re.sub(r'[^A-Za-z0-9_\-\.]', '_', file.filename)
+    path = f"guest/{uuid.uuid4().hex[:8]}_{safe_name}"
+    
+    res = supabase_client.storage.from_("master-decks").upload(path, file_content, {"content-type": "application/vnd.openxmlformats-officedocument.presentationml.presentation"})
+    if hasattr(res, 'status_code') and res.status_code >= 400:
+        raise HTTPException(status_code=500, detail=f"Supabase Upload Error: {res.text}")
+        
+    url_data = supabase_client.storage.from_("master-decks").get_public_url(path)
+    public_url = url_data if isinstance(url_data, str) else url_data.get("publicUrl")
+    
+    return {"file_url": public_url}
+
 class CompileRequest(BaseModel):
     session_id: str
     file_url: str
