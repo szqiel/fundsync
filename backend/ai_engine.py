@@ -158,7 +158,7 @@ async def generate_replacements_with_gemini(
             # For genai, generate_content_async is supported
             response = await asyncio.wait_for(
                 model.generate_content_async(user_prompt),
-                timeout=30.0
+                timeout=180.0 # Increased from 30s to 180s to allow Gemini to process entire pitch decks
             )
             
             raw_text = response.text.strip()

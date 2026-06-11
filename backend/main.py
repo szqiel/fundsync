@@ -258,6 +258,10 @@ async def generate_thumbnail(
                 }
             })
             
+            if 'id' not in job:
+                print(f"CloudConvert Error: {job}")
+                raise RuntimeError(f"CloudConvert API rejected the job: {job.get('message', 'Unknown error')}")
+                
             job_result = cloudconvert.Job.wait(id=job['id'])
             
             for task in job_result['tasks']:
