@@ -134,7 +134,7 @@ export default function AuthPage() {
         >
           <div className="flex flex-col items-center text-center mb-8">
             <div className="w-16 h-16 bg-[#CFEE91]/40 rounded-[1.25rem] flex items-center justify-center mb-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-[#CFEE91]/50 overflow-hidden">
-              <Image src="/FundSync_Logo.svg" alt="FundSync Logo" width={64} height={64} className="scale-[1.3] translate-y-1" />
+              <Image src="/FundSync_Logo.svg" alt="FundSync Logo" width={64} height={64} className="object-contain" />
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-zinc-950 mb-2">
               {mode === "signin" ? "Welcome Back" : "Create Workspace"}

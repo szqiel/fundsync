@@ -265,11 +265,7 @@ export default function Home() {
             <Image src="/FundSync_Logo.svg" alt="FundSync Logo" width={48} height={48} className="transition-transform group-hover:scale-95" />
             FundSync
           </div>
-          <div className="flex items-center gap-4">
-            <span className="bg-[#CFEE91]/40 text-[#1d7240] border border-[#CFEE91] font-mono text-[9px] font-bold px-2 py-1 tracking-widest uppercase rounded-full">
-              Member
-            </span>
-          </div>
+
         </header>
         <Dashboard user={user} onLogout={handleLogout} />
       </div>
@@ -290,13 +286,18 @@ export default function Home() {
           <Image src="/FundSync_Logo.svg" alt="FundSync Logo" width={48} height={48} className="transition-transform group-hover:scale-95 group-active:scale-90" />
           FundSync
         </div>
-        <Link href="/auth">
-          <MagneticButton 
-            className="bg-zinc-900 text-white px-5 py-2.5 rounded-full transition-all text-[11px] font-mono font-semibold tracking-widest flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-zinc-800"
-          >
-            WORKSPACE <ArrowRight className="w-3.5 h-3.5" />
-          </MagneticButton>
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link href="/about" className="font-mono text-[11px] font-semibold tracking-widest text-zinc-600 hover:text-zinc-900 transition-colors uppercase hidden sm:block">
+            About
+          </Link>
+          <Link href="/auth">
+            <MagneticButton 
+              className="bg-zinc-900 text-white px-5 py-2.5 rounded-full transition-all text-[11px] font-mono font-semibold tracking-widest flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-zinc-800"
+            >
+              WORKSPACE <ArrowRight className="w-3.5 h-3.5" />
+            </MagneticButton>
+          </Link>
+        </div>
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center w-full max-w-[1600px] mx-auto relative z-10 px-4 py-12">
@@ -314,11 +315,7 @@ export default function Home() {
             >
               {/* Left Column: Typography */}
               <div className="col-span-1 lg:col-span-6 flex flex-col justify-center lg:pr-12">
-                <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-zinc-200 shadow-sm mb-8 w-max">
-                  <Sparkles className="w-3.5 h-3.5 text-[#269755]" />
-                  <span className="text-[10px] font-mono font-semibold tracking-widest text-zinc-600 uppercase">Hyper-Personalized Outreach</span>
-                </motion.div>
-                
+
                 <motion.h1 
                   variants={fadeInUp}
                   className="text-5xl sm:text-6xl lg:text-[5.5rem] font-bold tracking-tighter mb-6 text-zinc-950 leading-[0.95]" 
@@ -334,18 +331,6 @@ export default function Home() {
                   Transform standard pitch decks into targeted, deeply aligned sponsor communications using contextual AI extraction.
                 </motion.p>
 
-                <motion.div variants={fadeInUp} className="mt-12 flex items-center gap-6">
-                  <div className="flex -space-x-3">
-                    {[1,2,3].map(i => (
-                      <div key={i} className={`w-10 h-10 rounded-full border-2 border-[#FAFAFA] bg-zinc-200 flex items-center justify-center overflow-hidden z-[${4-i}]`}>
-                        <img src={`https://i.pravatar.cc/100?img=${i+12}`} alt="User" className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="text-xs text-zinc-500 font-medium">
-                    <span className="text-zinc-900 font-bold">1,200+</span> pitch decks<br/>compiled this week.
-                  </div>
-                </motion.div>
               </div>
 
               {/* Right Column: Liquid Glass Upload Widget */}
@@ -538,6 +523,9 @@ export default function Home() {
                   );
                 })}
               </div>
+              <motion.p variants={fadeInUp} className="mt-8 text-xs text-zinc-400 font-mono text-center max-w-sm">
+                *Depending on the length of your presentation, AI synthesis may take up to 60 seconds to complete. Please do not close this window.
+              </motion.p>
             </motion.div>
           )}
 
@@ -610,13 +598,8 @@ export default function Home() {
       
       {/* Footer */}
       {(appState === "idle" || appState === "success") && (
-        <footer className="w-full px-6 lg:px-12 py-8 border-t border-zinc-200/60 flex flex-col md:flex-row items-center justify-between font-mono text-[10px] text-zinc-400 font-medium relative z-50">
+        <footer className="w-full px-6 lg:px-12 py-8 border-t border-zinc-200/60 flex items-center justify-center font-mono text-[10px] text-zinc-400 font-medium relative z-50">
           <div>© 2026 FundSync. All rights reserved.</div>
-          <div className="flex items-center gap-6 mt-4 md:mt-0">
-            <Link href="/about" className="hover:text-zinc-900 transition-colors">About</Link>
-            <a href="#" className="hover:text-zinc-900 transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-zinc-900 transition-colors">Terms of Service</a>
-          </div>
         </footer>
       )}
     </div>

@@ -430,24 +430,26 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     setProcessingFileName(selectedDeckName);
     setSessionId(crypto.randomUUID());
 
-    const formData = new FormData();
-    formData.append("file_url", fileUrlToSend);
-    formData.append("target_url", targetUrl);
-    formData.append("tone_formal", String(toneFormal));
-    formData.append("tone_technical", String(toneTechnical));
-    formData.append("custom_focus", customFocus);
+    const payload = {
+      file_url: fileUrlToSend,
+      target_url: targetUrl,
+      tone_formal: toneFormal,
+      tone_technical: toneTechnical,
+      custom_focus: customFocus
+    };
 
     try {
       const response = await fetch("http://localhost:8000/api/propose-replacements", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
         let errorText = "Error communicating with AI engine.";
         try {
           const errData = await response.json();
-          errorText = errData.detail || errorText;
+          errorText = (typeof errData.detail === 'string' ? errData.detail : JSON.stringify(errData.detail)) || errorText;
         } catch {
           try {
             errorText = await response.text() || errorText;
@@ -849,6 +851,9 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                           );
                         })}
                       </div>
+                      <motion.p variants={fadeInUp} className="mt-8 text-xs text-zinc-400 font-mono text-center max-w-sm">
+                        *Depending on the length of your presentation, AI synthesis may take up to 60 seconds to complete. Please do not close this window.
+                      </motion.p>
                     </motion.div>
                   )}
 
