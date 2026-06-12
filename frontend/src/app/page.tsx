@@ -523,6 +523,9 @@ export default function Home() {
                   );
                 })}
               </div>
+              <motion.p variants={fadeInUp} className="mt-8 text-xs text-zinc-400 font-mono text-center max-w-sm">
+                *Depending on the length of your presentation, AI synthesis may take up to 60 seconds to complete. Please do not close this window.
+              </motion.p>
             </motion.div>
           )}
 
