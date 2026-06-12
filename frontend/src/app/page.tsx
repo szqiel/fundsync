@@ -265,11 +265,7 @@ export default function Home() {
             <Image src="/FundSync_Logo.svg" alt="FundSync Logo" width={48} height={48} className="transition-transform group-hover:scale-95" />
             FundSync
           </div>
-          <div className="flex items-center gap-4">
-            <span className="bg-[#CFEE91]/40 text-[#1d7240] border border-[#CFEE91] font-mono text-[9px] font-bold px-2 py-1 tracking-widest uppercase rounded-full">
-              Member
-            </span>
-          </div>
+
         </header>
         <Dashboard user={user} onLogout={handleLogout} />
       </div>
