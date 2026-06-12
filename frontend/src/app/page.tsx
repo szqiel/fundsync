@@ -17,17 +17,18 @@ import {
   ArrowRight
 } from "lucide-react";
 import Link from "next/link";
-import { motion, AnimatePresence, Variants } from "framer-motion";
+import { motion, AnimatePresence, Variants, Transition } from "framer-motion";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import Dashboard from "@/components/Dashboard";
 import { AlchemyChamber } from "@/components/AlchemyChamber";
 import { AmbientBackground } from "@/components/ui/AmbientBackground";
+import { ParticlesBackground } from "@/components/ui/ParticlesBackground";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 
 // Premium Spring Physics
-const springTransition = { type: "spring", stiffness: 300, damping: 30 };
-const fastSpring = { type: "spring", stiffness: 400, damping: 25 };
+const springTransition: Transition = { type: "spring", stiffness: 300, damping: 30 };
+const fastSpring: Transition = { type: "spring", stiffness: 400, damping: 25 };
 
 // Framer Motion staggered orchestration
 const staggerContainer: Variants = {

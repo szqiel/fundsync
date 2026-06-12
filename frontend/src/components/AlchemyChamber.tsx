@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Transition } from "framer-motion";
 import { 
   Check, 
   X, 
@@ -33,8 +33,8 @@ interface DiffRow {
   selected: boolean;
 }
 
-const springTransition = { type: "spring", stiffness: 300, damping: 30 };
-const fastSpring = { type: "spring", stiffness: 400, damping: 25 };
+const springTransition: Transition = { type: "spring", stiffness: 300, damping: 30 };
+const fastSpring: Transition = { type: "spring", stiffness: 400, damping: 25 };
 
 export function AlchemyChamber({ 
   proposedReplacements, 

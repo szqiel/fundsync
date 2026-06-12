@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { motion, AnimatePresence, Variants } from "framer-motion";
+import { motion, AnimatePresence, Variants, Transition } from "framer-motion";
 import { 
   Folder, 
   Database, 
@@ -63,8 +63,8 @@ interface DashboardProps {
 }
 
 // Premium Spring Physics
-const springTransition = { type: "spring", stiffness: 300, damping: 30 };
-const fastSpring = { type: "spring", stiffness: 400, damping: 25 };
+const springTransition: Transition = { type: "spring", stiffness: 300, damping: 30 };
+const fastSpring: Transition = { type: "spring", stiffness: 400, damping: 25 };
 
 const staggerContainer: Variants = {
   hidden: { opacity: 0 },
