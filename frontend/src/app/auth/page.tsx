@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { motion, Variants } from "framer-motion";
+import { motion, Variants, Transition } from "framer-motion";
 import { Sparkles, ArrowLeft, Loader2, Lock, Mail, Key } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -12,8 +12,8 @@ import { AmbientBackground } from "@/components/ui/AmbientBackground";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 
 // Premium Spring Physics
-const springTransition = { type: "spring", stiffness: 300, damping: 30 };
-const fastSpring = { type: "spring", stiffness: 400, damping: 25 };
+const springTransition: Transition = { type: "spring", stiffness: 300, damping: 30 };
+const fastSpring: Transition = { type: "spring", stiffness: 400, damping: 25 };
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
