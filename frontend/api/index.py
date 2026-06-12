@@ -1,16 +1,37 @@
+import sys
+import os
+
+# Ensure the api directory is in the system path for local and Vercel imports
+api_dir = os.path.dirname(os.path.abspath(__file__))
+if api_dir not in sys.path:
+    sys.path.append(api_dir)
+
 from fastapi import FastAPI, UploadFile, File, Form, Request, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
-import os
 import shutil
 import uuid
 import json
 import re
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables robustly
+load_dotenv()  # Load standard .env if present
+
+current_dir = os.getcwd()
+candidate_paths = [
+    os.path.join(current_dir, ".env.local"),
+    os.path.join(current_dir, "..", ".env.local"),
+    os.path.join(current_dir, "frontend", ".env.local"),
+    os.path.join(api_dir, ".env.local"),
+    os.path.join(api_dir, "..", ".env.local")
+]
+
+for path in candidate_paths:
+    if os.path.exists(path):
+        load_dotenv(dotenv_path=path)
+        print(f"Loaded environment variables from {path}")
 
 import asyncio
 import time
@@ -20,13 +41,20 @@ from supabase import create_client, Client
 from collections import defaultdict
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
-from pptx_engine import replace_text_in_pptx, validate_pptx, extract_text_from_pptx
+from typing import List
+from pptx_engine import (
+    replace_text_in_pptx,
+    validate_pptx,
+    extract_text_from_pptx,
+    get_cached_download,
+    set_cached_download
+)
 from ai_engine import scrape_target_url, generate_replacements_with_gemini
 
 # Initialize Supabase Admin Client (Service Role Key Bypasses RLS)
-supabase_url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "")
-supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY", ""))
-supabase_client: Client = create_client(supabase_url, supabase_key) if supabase_url else None
+supabase_url = os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "").strip()
+supabase_key = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY") or "").strip()
+supabase_client: Client = create_client(supabase_url, supabase_key) if (supabase_url and supabase_key) else None
 
 # --- Step 2.2: Middleware for 15MB Size Limit ---
 class LimitUploadSize(BaseHTTPMiddleware):
@@ -36,13 +64,50 @@ class LimitUploadSize(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         if request.method == "POST":
+            content_length = None
             if "content-length" in request.headers:
-                content_length = int(request.headers["content-length"])
+                try:
+                    content_length = int(request.headers["content-length"])
+                except ValueError:
+                    pass
+
+            if content_length is not None:
                 if content_length > self.max_upload_size:
                     return JSONResponse(
                         status_code=413,
                         content={"detail": "Payload Too Large: File exceeds 15MB limit"}
                     )
+            else:
+                total_bytes = 0
+                body_chunks = []
+                async for chunk in request.stream():
+                    total_bytes += len(chunk)
+                    if total_bytes > self.max_upload_size:
+                        return JSONResponse(
+                            status_code=413,
+                            content={"detail": "Payload Too Large: File exceeds 15MB limit"}
+                        )
+                    body_chunks.append(chunk)
+
+                body = b"".join(body_chunks)
+                # Downstream expects ASGI stream, chunks of 256KB
+                chunks = [body[i:i+262144] for i in range(0, len(body), 262144)]
+                chunk_index = 0
+
+                async def mock_receive():
+                    nonlocal chunk_index
+                    if chunk_index < len(chunks):
+                        chunk = chunks[chunk_index]
+                        chunk_index += 1
+                        return {
+                            "type": "http.request",
+                            "body": chunk,
+                            "more_body": chunk_index < len(chunks)
+                        }
+                    return {"type": "http.disconnect"}
+
+                request._receive = mock_receive
+
         return await call_next(request)
 
 # --- Rate Limiter Middleware ---
@@ -53,15 +118,24 @@ RATE_LIMIT_WINDOW = 60 # seconds
 class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         if request.url.path.startswith("/api/"):
-            client_ip = request.client.host if request.client else "unknown"
+            x_forwarded_for = request.headers.get("x-forwarded-for")
+            if x_forwarded_for:
+                client_ip = x_forwarded_for.split(",")[0].strip()
+            else:
+                client_ip = request.client.host if request.client else "unknown"
+
             current_time = time.time()
             
-            rate_limit_records[client_ip] = [
-                t for t in rate_limit_records[client_ip] 
-                if current_time - t < RATE_LIMIT_WINDOW
-            ]
+            # Prune/clean up all keys whose lists are empty or expired to prevent memory leak
+            for ip in list(rate_limit_records.keys()):
+                rate_limit_records[ip] = [
+                    t for t in rate_limit_records[ip] 
+                    if current_time - t < RATE_LIMIT_WINDOW
+                ]
+                if not rate_limit_records[ip]:
+                    del rate_limit_records[ip]
             
-            if len(rate_limit_records[client_ip]) >= RATE_LIMIT_MAX_REQUESTS:
+            if len(rate_limit_records.get(client_ip, [])) >= RATE_LIMIT_MAX_REQUESTS:
                 return JSONResponse(
                     status_code=429,
                     content={"detail": "Rate limit exceeded. Maximum 5 requests per minute."}
@@ -71,7 +145,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             
         return await call_next(request)
 
-# --- Boot-Time Zombie Purge ---
+# --- Boot-Time Zombie Purge & HTTPX Session Management ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Boot-time purge: Cleaning up tmp/ directory...")
@@ -84,7 +158,20 @@ async def lifespan(app: FastAPI):
                 print(f"Purged zombie file: {filename}")
         except Exception as e:
             print(f"Failed to delete {file_path}: {e}")
+            
+    # Initialize global HTTPX AsyncClient for connection reuse (TCP pooling/keep-alive)
+    timeout = httpx.Timeout(15.0, connect=5.0)
+    app.state.client = httpx.AsyncClient(timeout=timeout)
+    print("Initialized global HTTPX AsyncClient.")
+    
+    # Initialize download locks for preventing cache stampede
+    app.state.download_locks = defaultdict(asyncio.Lock)
+    
     yield
+    
+    # Clean up HTTPX client on shutdown
+    await app.state.client.aclose()
+    print("Closed global HTTPX AsyncClient.")
 
 app = FastAPI(title="FundSync API", lifespan=lifespan)
 
@@ -120,31 +207,40 @@ class ProposeRequest(BaseModel):
     tone_technical: int = 50
     custom_focus: str = ""
 
-class CompileRequest(BaseModel):
-    session_id: str
-    replacements: dict
-
 @app.post("/api/propose-replacements")
 async def propose_replacements(request: ProposeRequest):
     session_id = str(uuid.uuid4())
 
     try:
-        # Download file directly into RAM
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(request.file_url)
-            if resp.status_code != 200:
-                raise HTTPException(status_code=400, detail="Failed to download file from Supabase.")
-            file_buffer = io.BytesIO(resp.content)
+        # Reuse global HTTPX AsyncClient from app state
+        client = app.state.client
 
-        # 1. Extract text from the loaded buffer
-        def run_extract():
-            return extract_text_from_pptx(file_buffer)
-        presentation_text = await asyncio.to_thread(run_extract)
+        # Define download and text extraction task
+        async def download_and_extract() -> List[str]:
+            url_lock = app.state.download_locks[request.file_url]
+            async with url_lock:
+                # Retrieve cached download if available
+                cached_data = get_cached_download(request.file_url)
+                if cached_data is not None:
+                    print(f"[Download Cache Hit] Using cached file content for {request.file_url}")
+                    file_buffer = io.BytesIO(cached_data)
+                else:
+                    resp = await client.get(request.file_url)
+                    if resp.status_code != 200:
+                        raise HTTPException(status_code=400, detail="Failed to download file from Supabase.")
+                    set_cached_download(request.file_url, resp.content)
+                    file_buffer = io.BytesIO(resp.content)
+            # Offload CPU-bound slide extraction to a worker thread
+            return await asyncio.to_thread(extract_text_from_pptx, file_buffer)
+
+        # 1 & 2. Run Supabase PPTX download/extraction and Firecrawl scraping in parallel
+        # This dramatically reduces latency by overlapping network and CPU operations
+        presentation_text, sponsor_context = await asyncio.gather(
+            download_and_extract(),
+            scrape_target_url(request.target_url, client=client)
+        )
         
-        # 2. Scrape the Sponsor URL (includes Safe Mode fallback)
-        sponsor_context = await scrape_target_url(request.target_url)
-        
-        # 3. Call Gemini to map replacements
+        # 3. Call Gemini to map replacements (Structured Output schema is used internally)
         replacements = await generate_replacements_with_gemini(
             presentation_text, 
             sponsor_context,
@@ -178,7 +274,13 @@ async def upload_guest(file: UploadFile = File(...)):
     safe_name = re.sub(r'[^A-Za-z0-9_\-\.]', '_', file.filename)
     path = f"guest/{uuid.uuid4().hex[:8]}_{safe_name}"
     
-    res = supabase_client.storage.from_("master-decks").upload(path, file_content, {"content-type": "application/vnd.openxmlformats-officedocument.presentationml.presentation"})
+    # Wrap synchronous Supabase upload in asyncio.to_thread
+    res = await asyncio.to_thread(
+        supabase_client.storage.from_("master-decks").upload,
+        path,
+        file_content,
+        {"content-type": "application/vnd.openxmlformats-officedocument.presentationml.presentation"}
+    )
     if hasattr(res, 'status_code') and res.status_code >= 400:
         raise HTTPException(status_code=500, detail=f"Supabase Upload Error: {res.text}")
         
@@ -198,12 +300,21 @@ async def compile_deck(
     request: CompileRequest
 ):
     try:
-        # Download master deck into RAM
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(request.file_url)
-            if resp.status_code != 200:
-                raise HTTPException(status_code=400, detail="Failed to download master deck.")
-            input_buffer = io.BytesIO(resp.content)
+        # Download master deck into RAM using global HTTPX client, leveraging cache if possible
+        client = app.state.client
+        
+        url_lock = app.state.download_locks[request.file_url]
+        async with url_lock:
+            cached_data = get_cached_download(request.file_url)
+            if cached_data is not None:
+                print(f"[Download Cache Hit] Using cached file content for {request.file_url}")
+                input_buffer = io.BytesIO(cached_data)
+            else:
+                resp = await client.get(request.file_url)
+                if resp.status_code != 200:
+                    raise HTTPException(status_code=400, detail="Failed to download master deck.")
+                set_cached_download(request.file_url, resp.content)
+                input_buffer = io.BytesIO(resp.content)
 
         # 4. Process the presentation via the document engine
         def run_engine():
@@ -225,7 +336,6 @@ async def compile_deck(
         output_buffer.seek(0)
         
         # Clean the original filename for the final output
-        import re
         safe_name = re.sub(r'[^A-Za-z0-9_\-\.]', '_', request.original_filename)
         if safe_name.lower().endswith(".pptx"):
             safe_name = safe_name[:-5]
@@ -234,9 +344,13 @@ async def compile_deck(
             
         output_filename = f"generated/{uuid.uuid4().hex[:8]}_{safe_name}_Personalized.pptx"
         
-        res = supabase_client.storage.from_("master-decks").upload(
-            output_filename, 
-            output_buffer.read(), 
+        file_bytes = output_buffer.read()
+        
+        # Wrap synchronous Supabase upload in asyncio.to_thread
+        res = await asyncio.to_thread(
+            supabase_client.storage.from_("master-decks").upload,
+            output_filename,
+            file_bytes,
             {"content-type": "application/vnd.openxmlformats-officedocument.presentationml.presentation"}
         )
         
@@ -310,10 +424,11 @@ async def generate_thumbnail(
         png_url = await asyncio.to_thread(run_cloudconvert_job)
             
         if png_url:
-            async with httpx.AsyncClient() as client:
-                png_resp = await client.get(png_url)
-                if png_resp.status_code == 200:
-                    return Response(content=png_resp.content, media_type="image/png")
+            # Reuse global HTTPX client
+            client = app.state.client
+            png_resp = await client.get(png_url)
+            if png_resp.status_code == 200:
+                return Response(content=png_resp.content, media_type="image/png")
                     
         raise HTTPException(status_code=500, detail="Failed to produce output image from CloudConvert.")
             
