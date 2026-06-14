@@ -12,8 +12,8 @@ import { AmbientBackground } from "@/components/ui/AmbientBackground";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 
 // Premium Spring Physics
-const springTransition = { type: "spring" as const, stiffness: 300, damping: 30 };
-const fastSpring = { type: "spring" as const, stiffness: 400, damping: 25 };
+const springTransition = { type: "spring" as const, duration: 0.4, bounce: 0 };
+const fastSpring = { type: "spring" as const, duration: 0.25, bounce: 0 };
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
@@ -187,7 +187,7 @@ export default function AuthPage() {
 
             <motion.button
               whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileTap={{ scale: 0.97 }}
               transition={fastSpring}
               type="submit"
               disabled={loading}
@@ -212,7 +212,7 @@ export default function AuthPage() {
 
           <motion.button
             whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileTap={{ scale: 0.97 }}
             transition={fastSpring}
             type="button"
             onClick={handleGoogleSignIn}

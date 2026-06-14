@@ -51,7 +51,7 @@ export function MagneticButton({
       style={{ x: springX, y: springY }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      whileTap={{ scale: 0.96 }}
+      whileTap={{ scale: 0.97 }}
       {...(props as any)} // Cast to avoid framer-motion HTML attributes conflict
       className={className}
     >

@@ -74,7 +74,7 @@ export default function About() {
               The Mission
             </h1>
             <p className="text-lg md:text-xl text-zinc-500 leading-relaxed font-light">
-              FundSync equips lean organizations and event committees with the strategic bandwidth of a dedicated corporate sponsorships team. We automate the grueling process of corporate research and pitch deck personalization, allowing you to secure vital funding faster, with profound precision.
+              FundSync equips lean organizations and event committees with the strategic bandwidth of a dedicated corporate sponsorships team. We automate the tedious process of researching sponsors and personalizing your pitch deck, helping you secure funding faster and easier.
             </p>
           </motion.div>
 
@@ -90,13 +90,13 @@ export default function About() {
                 <Search className="w-6 h-6" strokeWidth={1.5} />
               </div>
               <div className="font-mono text-[10px] font-bold text-zinc-400 tracking-widest uppercase mb-3 relative z-10">
-                01 // AUDIT
+                01 // RESEARCH
               </div>
               <h3 className="text-2xl font-bold mb-4 text-zinc-950 tracking-tight relative z-10">
-                Intelligent Scrape
+                Smart Research
               </h3>
               <p className="text-zinc-500 text-sm leading-relaxed font-light relative z-10">
-                We actively analyze target sponsor websites, extracting high-signal data points regarding their Corporate Social Responsibility (CSR) goals, recent philanthropic initiatives, and core brand mandates.
+                We scan your target sponsor's website to learn about their goals, recent charity work, and what matters most to their brand.
               </p>
             </div>
 
@@ -107,13 +107,13 @@ export default function About() {
                 <Compass className="w-6 h-6" strokeWidth={1.5} />
               </div>
               <div className="font-mono text-[10px] font-bold text-zinc-400 tracking-widest uppercase mb-3 relative z-10">
-                02 // ALIGN
+                02 // MATCH
               </div>
               <h3 className="text-2xl font-bold mb-4 text-zinc-950 tracking-tight relative z-10">
-                Semantic Mapping
+                Finding the Connection
               </h3>
               <p className="text-zinc-500 text-sm leading-relaxed font-light relative z-10">
-                Our proprietary LLM engine maps your existing sponsorship deck's value proposition directly to the extracted corporate mandates, identifying the highest-probability angles for strategic alignment.
+                Our AI looks at your presentation and matches it with the sponsor's goals, finding the best way to show why you are a perfect fit.
               </p>
             </div>
 
@@ -124,13 +124,13 @@ export default function About() {
                 <RefreshCcw className="w-6 h-6" strokeWidth={1.5} />
               </div>
               <div className="font-mono text-[10px] font-bold text-zinc-400 tracking-widest uppercase mb-3 relative z-10">
-                03 // SYNCHRONIZE
+                03 // UPDATE
               </div>
               <h3 className="text-2xl font-bold mb-4 text-zinc-950 tracking-tight relative z-10">
-                Seamless Synthesis
+                Automatic Updates
               </h3>
               <p className="text-zinc-500 text-sm leading-relaxed font-light relative z-10">
-                FundSync natively manipulates your .pptx files, autonomously injecting the personalized copy, tailored statistics, and adjusting formatting elements to reflect the target sponsor's brand identity.
+                FundSync updates your presentation file automatically, adding the personalized text and statistics right into your slides while keeping your design intact.
               </p>
             </div>
           </motion.div>

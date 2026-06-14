@@ -26,8 +26,8 @@ import { AmbientBackground } from "@/components/ui/AmbientBackground";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 
 // Premium Spring Physics
-const springTransition = { type: "spring" as const, stiffness: 300, damping: 30 };
-const fastSpring = { type: "spring" as const, stiffness: 400, damping: 25 };
+const springTransition = { type: "spring" as const, duration: 0.4, bounce: 0 };
+const fastSpring = { type: "spring" as const, duration: 0.25, bounce: 0 };
 
 // Framer Motion staggered orchestration
 const staggerContainer: Variants = {
@@ -238,7 +238,7 @@ export default function Home() {
 
   if (authLoading) {
     return (
-      <div className="min-h-[100dvh] bg-[#F3EFE7] flex flex-col items-center justify-center font-sans">
+      <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center font-sans">
         <Loader2 className="w-8 h-8 text-zinc-900 animate-spin mb-6" />
         <motion.div 
           initial={{ opacity: 0 }}
@@ -255,7 +255,7 @@ export default function Home() {
   // Auth gate render
   if (user) {
     return (
-      <div className="min-h-[100dvh] bg-[#F3EFE7] flex flex-col font-sans text-zinc-900 selection:bg-emerald-200 selection:text-emerald-950">
+      <div className="min-h-[100dvh] bg-background flex flex-col font-sans text-zinc-900 selection:bg-emerald-200 selection:text-emerald-950">
         <header className="w-full flex items-center justify-between px-6 lg:px-12 py-5 border-b border-zinc-200/60 bg-white/70 backdrop-blur-xl sticky top-0 z-50 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
           <div 
             onClick={resetState}
@@ -273,7 +273,7 @@ export default function Home() {
 
   // Guest flow render
   return (
-    <div className="min-h-[100dvh] bg-[#F3EFE7] flex flex-col font-sans text-zinc-900 selection:bg-emerald-200 selection:text-emerald-950 relative overflow-hidden">
+    <div className="min-h-[100dvh] bg-background flex flex-col font-sans text-zinc-900 selection:bg-emerald-200 selection:text-emerald-950 relative overflow-hidden">
       
       <AmbientBackground />
 
@@ -348,12 +348,12 @@ export default function Home() {
                         accept=".pptx"
                         required
                         onChange={(e) => setFile(e.target.files?.[0] || null)}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        className="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       />
                       <motion.div 
-                        whileHover={{ scale: 0.99, backgroundColor: "#f4f4f5" }}
+                        whileHover={{ transform: "scale(0.99)", backgroundColor: "#f4f4f5" }}
                         transition={fastSpring}
-                        className={`w-full h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-colors ${
+                        className={`w-full h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 ${
                           file ? "border-[#269755]/30 bg-[#CFEE91]/40/50" : "border-zinc-200 bg-zinc-50/50 group-hover:border-zinc-300"
                         }`}
                       >
@@ -570,7 +570,7 @@ export default function Home() {
               <motion.div variants={fadeInUp} className="w-full grid grid-cols-2 gap-4 mb-10 relative z-10">
                 <div className="bg-zinc-50 rounded-2xl p-6 flex flex-col items-center justify-center border border-zinc-100">
                   <div className="text-3xl font-bold mb-1 text-zinc-900">{replacementsCount}</div>
-                  <div className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase">Strings Adapted</div>
+                  <div className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase">Words Changed</div>
                 </div>
                 <div className="bg-zinc-50 rounded-2xl p-6 flex flex-col items-center justify-center border border-zinc-100">
                   <div className="text-3xl font-bold mb-1 text-zinc-900">{slidesModifiedCount}</div>
@@ -579,7 +579,7 @@ export default function Home() {
               </motion.div>
 
               <motion.a 
-                variants={fadeInUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={fastSpring}
+                variants={fadeInUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={fastSpring}
                 href={downloadUrl || "#"} download={`FundSync_Personalized_Pitch.pptx`}
                 className="w-full bg-zinc-950 text-white h-14 flex items-center justify-center gap-3 hover:bg-zinc-800 transition-colors mb-6 rounded-xl font-semibold shadow-[0_4px_14px_rgba(0,0,0,0.1)] relative z-10"
               >
@@ -602,5 +602,10 @@ export default function Home() {
         </footer>
       )}
     </div>
+  );
+} </div>
+  );
+}
+}iv>
   );
 }
