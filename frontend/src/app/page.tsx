@@ -327,7 +327,7 @@ export default function Home() {
                   variants={fadeInUp}
                   className="text-zinc-500 text-lg sm:text-xl max-w-[500px] leading-relaxed font-light"
                 >
-                  Transform standard pitch decks into targeted, deeply aligned sponsor communications using contextual AI extraction.
+                  Transform standard pitch decks into personalized presentations for any sponsor in seconds.
                 </motion.p>
 
               </div>
@@ -361,14 +361,14 @@ export default function Home() {
                           {file ? <Check className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
                         </div>
                         <span className="text-xs font-mono font-medium text-zinc-600 truncate max-w-[80%]">
-                          {file ? file.name : "Drop Master .pptx here"}
+                          {file ? file.name : "Drop your .pptx presentation here"}
                         </span>
                       </motion.div>
                     </div>
 
                     {/* URL Input */}
                     <div className="space-y-3">
-                      <label className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase font-bold px-1">Target Sponsor URL</label>
+                      <label className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase font-bold px-1">SPONSOR WEBSITE</label>
                       <div className="relative flex items-center focus-within:ring-2 focus-within:ring-[#269755]/20 rounded-xl overflow-hidden transition-all shadow-sm border border-zinc-200 bg-white">
                         <div className="pl-4 pr-2">
                           <Link2 className="w-4 h-4 text-zinc-400" />
@@ -393,7 +393,7 @@ export default function Home() {
                       >
                         <span className="flex items-center gap-2">
                           <Sliders className="w-3.5 h-3.5 text-zinc-400" />
-                          Alignment Parameters
+                          Personalization Settings
                         </span>
                         <motion.div animate={{ rotate: isTonePanelOpen ? 180 : 0 }} transition={fastSpring}>
                           <ChevronDown className="w-4 h-4 text-zinc-400" />
@@ -458,12 +458,12 @@ export default function Home() {
                       disabled={!file || !url}
                       className="w-full bg-zinc-950 text-white h-14 rounded-xl flex items-center justify-center gap-2 hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
                     >
-                      <span className="text-sm font-semibold tracking-wide">Synthesize Pitch</span>
+                      <span className="text-sm font-semibold tracking-wide">Personalize Pitch</span>
                       <Sparkles className="w-4 h-4" />
                     </MagneticButton>
 
                     <div className="flex items-center justify-center gap-2 text-[10px] font-mono text-zinc-400 tracking-widest uppercase mt-4">
-                      <Lock className="w-3 h-3" /> Encrypted Processing
+                      <Lock className="w-3 h-3" /> Secure connection
                     </div>
                   </form>
                 </div>
@@ -491,9 +491,9 @@ export default function Home() {
 
               <div className="w-full space-y-4 text-left">
                 {[
-                  { step: 1, title: "Extract Presentation Copy", desc: "Recursively traversing shapes and table structures." },
-                  { step: 2, title: "Scrape Target Context", desc: "Analyzing sponsor URL for CSR and structural goals." },
-                  { step: 3, title: "Tonal Synthesis", desc: "Gemini generating layout-constrained replacements." }
+                  { step: 1, title: "Reading your presentation", desc: "Analyzing the text in your slides." },
+                  { step: 2, title: "Researching sponsor", desc: "Learning about the sponsor's goals from their website." },
+                  { step: 3, title: "Writing personalized text", desc: "Creating new text that fits perfectly in your slides." }
                 ].map((item, idx) => {
                   const isActive = logStage >= item.step;
                   const isCurrent = logStage === item.step - 1;
@@ -542,10 +542,10 @@ export default function Home() {
                 <Loader2 className="w-6 h-6 text-zinc-900 animate-spin" />
               </motion.div>
               <motion.h3 variants={fadeInUp} className="text-xl font-semibold text-zinc-900 mb-3 tracking-tight">
-                Injecting variables and compiling...
+                Updating your presentation...
               </motion.h3>
               <motion.p variants={fadeInUp} className="text-zinc-400 text-xs font-mono tracking-wide">
-                Executing anti-corruption XML checks
+                Finalizing your download...
               </motion.p>
             </motion.div>
           )}
@@ -560,11 +560,11 @@ export default function Home() {
               </motion.div>
               
               <motion.h1 variants={fadeInUp} className="text-3xl lg:text-4xl font-bold tracking-tight mb-4 text-zinc-900 relative z-10">
-                Synthesis Complete
+                Your Pitch is Ready
               </motion.h1>
               
               <motion.p variants={fadeInUp} className="text-zinc-500 text-sm mb-12 max-w-md relative z-10">
-                Your pitch deck has been recursively aligned with the target sponsor. Ready for download.
+                We've personalized your pitch deck for this sponsor. It's ready to download.
               </motion.p>
 
               <motion.div variants={fadeInUp} className="w-full grid grid-cols-2 gap-4 mb-10 relative z-10">
@@ -603,9 +603,4 @@ export default function Home() {
       )}
     </div>
   );
-} </div>
-  );
-}
-}iv>
-  );
-}
+};

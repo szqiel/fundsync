@@ -141,7 +141,7 @@ export default function AuthPage() {
             </h1>
             <p className="text-sm font-medium text-zinc-500">
               {mode === "signin" 
-                ? "Unlock your CRM hub and master library." 
+                ? "Access your personalized pitch decks." 
                 : "Register to personalize and compile decks."}
             </p>
           </div>
@@ -196,10 +196,10 @@ export default function AuthPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Securing...
+                  Creating Account...
                 </>
               ) : (
-                mode === "signin" ? "Sign In" : "Register Workspace"
+                mode === "signin" ? "Sign In" : "Register Account"
               )}
             </motion.button>
           </form>
@@ -241,7 +241,7 @@ export default function AuthPage() {
           </div>
 
           <div className="mt-8 flex justify-center items-center gap-2 text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
-            <Lock className="w-3 h-3" /> Secure B2B Environment
+            <Lock className="w-3 h-3" /> Secure Connection
           </div>
         </motion.div>
       </main>

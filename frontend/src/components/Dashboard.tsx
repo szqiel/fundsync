@@ -1074,8 +1074,4 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
       </main>
     </div>
   );
-}div>
-  );
-}
-}  );
 }
