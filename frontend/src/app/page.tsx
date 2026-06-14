@@ -26,8 +26,8 @@ import { AmbientBackground } from "@/components/ui/AmbientBackground";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 
 // Premium Spring Physics
-const springTransition = { type: "spring", stiffness: 300, damping: 30 };
-const fastSpring = { type: "spring", stiffness: 400, damping: 25 };
+const springTransition = { type: "spring" as const, duration: 0.4, bounce: 0 };
+const fastSpring = { type: "spring" as const, duration: 0.25, bounce: 0 };
 
 // Framer Motion staggered orchestration
 const staggerContainer: Variants = {
@@ -141,7 +141,8 @@ export default function Home() {
       // 1. Upload guest file securely via backend
       const uploadData = new FormData();
       uploadData.append("file", file);
-      const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/upload-guest`, { method: "POST", body: uploadData });
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const uploadRes = await fetch(`${apiUrl}/api/upload-guest`, { method: "POST", body: uploadData });
       
       if (!uploadRes.ok) {
         let err = "Failed to upload demo file.";
@@ -153,7 +154,7 @@ export default function Home() {
       setProcessingFileUrl(file_url);
 
       // 2. Synthesize replacements
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/propose-replacements`, {
+      const response = await fetch(`${apiUrl}/api/propose-replacements`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -179,7 +180,6 @@ export default function Home() {
       setSessionId(data.session_id);
       setScrapedContext(data.sponsor_context);
       setAppState("alchemy");
-
     } catch (error: any) {
       console.error("Propose replacements failed:", error);
       toast.error(error.message || "Failed to contact AI. Please verify backend is running.");
@@ -192,7 +192,8 @@ export default function Home() {
     setAppState("compiling");
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/compile-deck`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${apiUrl}/api/compile-deck`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -239,7 +240,7 @@ export default function Home() {
 
   if (authLoading) {
     return (
-      <div className="min-h-[100dvh] bg-[#F3EFE7] flex flex-col items-center justify-center font-sans">
+      <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center font-sans">
         <Loader2 className="w-8 h-8 text-zinc-900 animate-spin mb-6" />
         <motion.div 
           initial={{ opacity: 0 }}
@@ -256,7 +257,7 @@ export default function Home() {
   // Auth gate render
   if (user) {
     return (
-      <div className="min-h-[100dvh] bg-[#F3EFE7] flex flex-col font-sans text-zinc-900 selection:bg-emerald-200 selection:text-emerald-950">
+      <div className="min-h-[100dvh] bg-background flex flex-col font-sans text-zinc-900 selection:bg-emerald-200 selection:text-emerald-950">
         <header className="w-full flex items-center justify-between px-6 lg:px-12 py-5 border-b border-zinc-200/60 bg-white/70 backdrop-blur-xl sticky top-0 z-50 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
           <div 
             onClick={resetState}
@@ -274,7 +275,7 @@ export default function Home() {
 
   // Guest flow render
   return (
-    <div className="min-h-[100dvh] bg-[#F3EFE7] flex flex-col font-sans text-zinc-900 selection:bg-emerald-200 selection:text-emerald-950 relative overflow-hidden">
+    <div className="min-h-[100dvh] bg-background flex flex-col font-sans text-zinc-900 selection:bg-emerald-200 selection:text-emerald-950 relative overflow-hidden">
       
       <AmbientBackground />
 
@@ -328,7 +329,7 @@ export default function Home() {
                   variants={fadeInUp}
                   className="text-zinc-500 text-lg sm:text-xl max-w-[500px] leading-relaxed font-light"
                 >
-                  Transform standard pitch decks into targeted, deeply aligned sponsor communications using contextual AI extraction.
+                  Transform standard pitch decks into personalized presentations for any sponsor in seconds.
                 </motion.p>
 
               </div>
@@ -349,12 +350,12 @@ export default function Home() {
                         accept=".pptx"
                         required
                         onChange={(e) => setFile(e.target.files?.[0] || null)}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        className="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       />
                       <motion.div 
-                        whileHover={{ scale: 0.99, backgroundColor: "#f4f4f5" }}
+                        whileHover={{ transform: "scale(0.99)", backgroundColor: "#f4f4f5" }}
                         transition={fastSpring}
-                        className={`w-full h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-colors ${
+                        className={`w-full h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 ${
                           file ? "border-[#269755]/30 bg-[#CFEE91]/40/50" : "border-zinc-200 bg-zinc-50/50 group-hover:border-zinc-300"
                         }`}
                       >
@@ -362,14 +363,14 @@ export default function Home() {
                           {file ? <Check className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
                         </div>
                         <span className="text-xs font-mono font-medium text-zinc-600 truncate max-w-[80%]">
-                          {file ? file.name : "Drop Master .pptx here"}
+                          {file ? file.name : "Drop your .pptx presentation here"}
                         </span>
                       </motion.div>
                     </div>
 
                     {/* URL Input */}
                     <div className="space-y-3">
-                      <label className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase font-bold px-1">Target Sponsor URL</label>
+                      <label className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase font-bold px-1">SPONSOR WEBSITE</label>
                       <div className="relative flex items-center focus-within:ring-2 focus-within:ring-[#269755]/20 rounded-xl overflow-hidden transition-all shadow-sm border border-zinc-200 bg-white">
                         <div className="pl-4 pr-2">
                           <Link2 className="w-4 h-4 text-zinc-400" />
@@ -394,7 +395,7 @@ export default function Home() {
                       >
                         <span className="flex items-center gap-2">
                           <Sliders className="w-3.5 h-3.5 text-zinc-400" />
-                          Alignment Parameters
+                          Personalization Settings
                         </span>
                         <motion.div animate={{ rotate: isTonePanelOpen ? 180 : 0 }} transition={fastSpring}>
                           <ChevronDown className="w-4 h-4 text-zinc-400" />
@@ -459,12 +460,12 @@ export default function Home() {
                       disabled={!file || !url}
                       className="w-full bg-zinc-950 text-white h-14 rounded-xl flex items-center justify-center gap-2 hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
                     >
-                      <span className="text-sm font-semibold tracking-wide">Synthesize Pitch</span>
+                      <span className="text-sm font-semibold tracking-wide">Personalize Pitch</span>
                       <Sparkles className="w-4 h-4" />
                     </MagneticButton>
 
                     <div className="flex items-center justify-center gap-2 text-[10px] font-mono text-zinc-400 tracking-widest uppercase mt-4">
-                      <Lock className="w-3 h-3" /> Encrypted Processing
+                      <Lock className="w-3 h-3" /> Secure connection
                     </div>
                   </form>
                 </div>
@@ -492,9 +493,9 @@ export default function Home() {
 
               <div className="w-full space-y-4 text-left">
                 {[
-                  { step: 1, title: "Extract Presentation Copy", desc: "Recursively traversing shapes and table structures." },
-                  { step: 2, title: "Scrape Target Context", desc: "Analyzing sponsor URL for CSR and structural goals." },
-                  { step: 3, title: "Tonal Synthesis", desc: "Gemini generating layout-constrained replacements." }
+                  { step: 1, title: "Reading your presentation", desc: "Analyzing the text in your slides." },
+                  { step: 2, title: "Researching sponsor", desc: "Learning about the sponsor's goals from their website." },
+                  { step: 3, title: "Writing personalized text", desc: "Creating new text that fits perfectly in your slides." }
                 ].map((item, idx) => {
                   const isActive = logStage >= item.step;
                   const isCurrent = logStage === item.step - 1;
@@ -543,10 +544,10 @@ export default function Home() {
                 <Loader2 className="w-6 h-6 text-zinc-900 animate-spin" />
               </motion.div>
               <motion.h3 variants={fadeInUp} className="text-xl font-semibold text-zinc-900 mb-3 tracking-tight">
-                Injecting variables and compiling...
+                Updating your presentation...
               </motion.h3>
               <motion.p variants={fadeInUp} className="text-zinc-400 text-xs font-mono tracking-wide">
-                Executing anti-corruption XML checks
+                Finalizing your download...
               </motion.p>
             </motion.div>
           )}
@@ -561,17 +562,17 @@ export default function Home() {
               </motion.div>
               
               <motion.h1 variants={fadeInUp} className="text-3xl lg:text-4xl font-bold tracking-tight mb-4 text-zinc-900 relative z-10">
-                Synthesis Complete
+                Your Pitch is Ready
               </motion.h1>
               
               <motion.p variants={fadeInUp} className="text-zinc-500 text-sm mb-12 max-w-md relative z-10">
-                Your pitch deck has been recursively aligned with the target sponsor. Ready for download.
+                We've personalized your pitch deck for this sponsor. It's ready to download.
               </motion.p>
 
               <motion.div variants={fadeInUp} className="w-full grid grid-cols-2 gap-4 mb-10 relative z-10">
                 <div className="bg-zinc-50 rounded-2xl p-6 flex flex-col items-center justify-center border border-zinc-100">
                   <div className="text-3xl font-bold mb-1 text-zinc-900">{replacementsCount}</div>
-                  <div className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase">Strings Adapted</div>
+                  <div className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase">Words Changed</div>
                 </div>
                 <div className="bg-zinc-50 rounded-2xl p-6 flex flex-col items-center justify-center border border-zinc-100">
                   <div className="text-3xl font-bold mb-1 text-zinc-900">{slidesModifiedCount}</div>
@@ -580,7 +581,7 @@ export default function Home() {
               </motion.div>
 
               <motion.a 
-                variants={fadeInUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={fastSpring}
+                variants={fadeInUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={fastSpring}
                 href={downloadUrl || "#"} download={`FundSync_Personalized_Pitch.pptx`}
                 className="w-full bg-zinc-950 text-white h-14 flex items-center justify-center gap-3 hover:bg-zinc-800 transition-colors mb-6 rounded-xl font-semibold shadow-[0_4px_14px_rgba(0,0,0,0.1)] relative z-10"
               >
@@ -604,4 +605,4 @@ export default function Home() {
       )}
     </div>
   );
-}
+};

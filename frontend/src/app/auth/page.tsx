@@ -12,8 +12,8 @@ import { AmbientBackground } from "@/components/ui/AmbientBackground";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 
 // Premium Spring Physics
-const springTransition = { type: "spring", stiffness: 300, damping: 30 };
-const fastSpring = { type: "spring", stiffness: 400, damping: 25 };
+const springTransition = { type: "spring" as const, duration: 0.4, bounce: 0 };
+const fastSpring = { type: "spring" as const, duration: 0.25, bounce: 0 };
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
@@ -141,7 +141,7 @@ export default function AuthPage() {
             </h1>
             <p className="text-sm font-medium text-zinc-500">
               {mode === "signin" 
-                ? "Unlock your CRM hub and master library." 
+                ? "Access your personalized pitch decks." 
                 : "Register to personalize and compile decks."}
             </p>
           </div>
@@ -187,7 +187,7 @@ export default function AuthPage() {
 
             <motion.button
               whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileTap={{ scale: 0.97 }}
               transition={fastSpring}
               type="submit"
               disabled={loading}
@@ -196,10 +196,10 @@ export default function AuthPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Securing...
+                  Creating Account...
                 </>
               ) : (
-                mode === "signin" ? "Sign In" : "Register Workspace"
+                mode === "signin" ? "Sign In" : "Register Account"
               )}
             </motion.button>
           </form>
@@ -212,7 +212,7 @@ export default function AuthPage() {
 
           <motion.button
             whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileTap={{ scale: 0.97 }}
             transition={fastSpring}
             type="button"
             onClick={handleGoogleSignIn}
@@ -241,7 +241,7 @@ export default function AuthPage() {
           </div>
 
           <div className="mt-8 flex justify-center items-center gap-2 text-[10px] font-mono text-zinc-400 uppercase tracking-widest">
-            <Lock className="w-3 h-3" /> Secure B2B Environment
+            <Lock className="w-3 h-3" /> Secure Connection
           </div>
         </motion.div>
       </main>

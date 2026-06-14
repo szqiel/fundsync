@@ -33,8 +33,8 @@ interface DiffRow {
   selected: boolean;
 }
 
-const springTransition = { type: "spring", stiffness: 300, damping: 30 };
-const fastSpring = { type: "spring", stiffness: 400, damping: 25 };
+const springTransition = { type: "spring" as const, duration: 0.4, bounce: 0 };
+const fastSpring = { type: "spring" as const, duration: 0.25, bounce: 0 };
 
 export function AlchemyChamber({ 
   proposedReplacements, 
@@ -114,21 +114,21 @@ export function AlchemyChamber({
         <div>
           <div className="flex items-center gap-2 mb-3">
             <span className="bg-[#CFEE91]/40 border border-[#CFEE91]/50 text-[#269755] text-[10px] font-mono font-bold px-3 py-1 tracking-widest uppercase rounded-full flex items-center gap-1.5">
-              <Sparkles className="w-3 h-3" /> Synthesis Review
+              <Sparkles className="w-3 h-3" /> Review Changes
             </span>
           </div>
           <h2 className="text-3xl font-bold tracking-tight text-zinc-950 mb-2">
-            The Alchemy Chamber
+            Review & Edit
           </h2>
           <p className="text-sm text-zinc-500 max-w-xl font-medium">
-            Review the AI-generated contextual alignments. Approve segments, edit copies manually, and monitor character overflow metrics before compilation.
+            Review the changes we've suggested. You can approve them, make your own edits, and make sure the text fits perfectly.
           </p>
         </div>
 
         <div className="flex items-center gap-4 shrink-0">
           <motion.button
             whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileTap={{ scale: 0.97 }}
             onClick={onCancel}
             className="bg-white border border-zinc-200/80 text-zinc-500 hover:text-zinc-900 px-6 py-3.5 rounded-full text-xs font-mono font-bold tracking-wider transition-all shadow-sm"
           >
@@ -137,7 +137,7 @@ export function AlchemyChamber({
           
           <motion.button
             whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileTap={{ scale: 0.97 }}
             onClick={handleFinalCompile}
             className="bg-zinc-950 hover:bg-zinc-800 text-white px-7 py-3.5 rounded-full text-xs font-mono font-bold tracking-wider transition-all flex items-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
           >
@@ -178,11 +178,11 @@ export function AlchemyChamber({
             </div>
 
             <div className="flex items-center gap-4 pr-2 text-[10px] tracking-widest">
-              <button onClick={() => handleBulkSelect(true)} className="text-[#269755] hover:text-[#1d7240] font-bold transition-colors">
+              <button onClick={() => handleBulkSelect(true)} className="p-2 -my-2 text-[#269755] hover:text-[#1d7240] font-bold transition-colors min-h-[44px] min-w-[44px]">
                 SELECT ALL
               </button>
               <span className="text-zinc-300">|</span>
-              <button onClick={() => handleBulkSelect(false)} className="text-zinc-400 hover:text-red-500 font-bold transition-colors">
+              <button onClick={() => handleBulkSelect(false)} className="p-2 -my-2 text-zinc-400 hover:text-red-500 font-bold transition-colors min-h-[44px] min-w-[44px]">
                 EXCLUDE ALL
               </button>
             </div>
@@ -202,7 +202,7 @@ export function AlchemyChamber({
                   return (
                     <motion.div
                       layout
-                      initial={{ opacity: 0, scale: 0.98 }}
+                      initial={{ opacity: 0, scale: 0.97 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={springTransition}
@@ -295,7 +295,7 @@ export function AlchemyChamber({
                         </div>
                       </div>
 
-                      {/* Layout Overflow Alerts */}
+                      {/* Text Might Not Fit */}
                       <AnimatePresence>
                         {row.selected && isTooLong && (
                           <motion.div 
@@ -307,7 +307,7 @@ export function AlchemyChamber({
                             <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                             <div>
                               <span className="font-bold block mb-1">Slide Layout Risk</span>
-                              Text is <span className="font-mono bg-red-100 px-1 py-0.5 rounded text-[10px]">{percentIncrease}%</span> longer than original (+{currentLength - originalLength} chars). This may overflow standard presentation bounding boxes. Please compress the copy.
+                              Text is <span className="font-mono bg-red-100 px-1 py-0.5 rounded text-[10px]">{percentIncrease}%</span> longer than original (+{currentLength - originalLength} chars). This text is longer than the original and might not fit well on your slide. Consider making it shorter.
                             </div>
                           </motion.div>
                         )}
@@ -334,11 +334,11 @@ export function AlchemyChamber({
           <div className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)] rounded-[2rem] flex flex-col gap-4 sticky top-24">
             <div className="text-[10px] font-mono tracking-widest text-zinc-900 uppercase font-bold flex items-center gap-2 border-b border-zinc-100 pb-4">
               <Layers className="w-4 h-4 text-[#269755]" />
-              Sponsor Dossier Intel
+              Sponsor Research
             </div>
             
             <p className="text-xs text-zinc-500 font-medium leading-relaxed">
-              Below is the raw intelligence scraped from the target's domain. The generative engine referenced this data directly to tailor alignment priorities.
+              Here is the information we found on the sponsor's website. We used this to personalize your presentation.
             </p>
 
             <button
@@ -346,7 +346,7 @@ export function AlchemyChamber({
               className="w-full flex items-center justify-between border border-zinc-200 bg-white p-4 text-[10px] font-mono font-bold tracking-widest hover:bg-zinc-50 transition-colors rounded-xl shadow-sm uppercase mt-2 text-zinc-700"
             >
               <span>{isDossierOpen ? "Collapse Data" : "Expand Raw Data"}</span>
-              <motion.div animate={{ rotate: isDossierOpen ? 180 : 0 }} transition={fastSpring}>
+              <motion.div animate={{ transform: isDossierOpen ? "rotate(180deg)" : "rotate(0deg)" }} transition={fastSpring}>
                 <ChevronDown className="w-4 h-4 text-zinc-400" />
               </motion.div>
             </button>
@@ -370,10 +370,10 @@ export function AlchemyChamber({
             <div className="bg-blue-50/50 border border-blue-100/50 rounded-xl p-5 mt-4 space-y-2.5">
               <div className="text-[10px] font-mono tracking-widest text-blue-600 uppercase font-bold flex items-center gap-2">
                 <Info className="w-4 h-4" />
-                Formatting Guarantee
+                Formatting Preserved
               </div>
               <p className="text-[11px] text-blue-800/80 leading-relaxed font-medium">
-                Rejecting a replacement preserves the exact XML slide text as it exists in the master deck. Font weights, colors, and layout structures are perfectly maintained.
+                If you reject a change, your original text will stay exactly as it was, keeping all your fonts and colors.
               </p>
             </div>
           </div>

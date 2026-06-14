@@ -63,8 +63,8 @@ interface DashboardProps {
 }
 
 // Premium Spring Physics
-const springTransition = { type: "spring", stiffness: 300, damping: 30 };
-const fastSpring = { type: "spring", stiffness: 400, damping: 25 };
+const springTransition = { type: "spring" as const, duration: 0.4, bounce: 0 };
+const fastSpring = { type: "spring" as const, duration: 0.25, bounce: 0 };
 
 const staggerContainer: Variants = {
   hidden: { opacity: 0 },
@@ -79,14 +79,13 @@ const staggerContainer: Variants = {
 };
 
 const fadeInUp: Variants = {
-  hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
+  hidden: { opacity: 0, y: 20 },
   visible: { 
     opacity: 1, 
     y: 0, 
-    filter: "blur(0px)",
     transition: springTransition
   },
-  exit: { opacity: 0, y: -10, filter: "blur(4px)", transition: { duration: 0.2 } }
+  exit: { opacity: 0, y: -10, transition: { duration: 0.2 } }
 };
 
 export default function Dashboard({ user, onLogout }: DashboardProps) {
@@ -301,7 +300,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
         const formData = new FormData();
         formData.append("file_url", fileUrl); // Send file_url instead of massive Blob!
-        const thumbResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/generate-thumbnail`, {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const thumbResponse = await fetch(`${apiUrl}/api/generate-thumbnail`, {
           method: "POST",
           body: formData
         });
@@ -439,7 +439,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     };
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/propose-replacements`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${apiUrl}/api/propose-replacements`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -520,7 +521,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     setProcessingState("compiling");
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/compile-deck`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${apiUrl}/api/compile-deck`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -639,7 +641,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                 {[
                   { id: "studio", icon: Sparkles, label: "Studio" },
                   { id: "decks", icon: Folder, label: "Decks", count: decks.length },
-                  { id: "sponsors", icon: Database, label: "CRM Hub", count: sponsors.length },
+                  { id: "sponsors", icon: Database, label: "Sponsor Directory", count: sponsors.length },
                   { id: "history", icon: History, label: "Logs", count: history.length },
                 ].map((item) => (
                   <button
@@ -679,7 +681,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
               </span>
               <motion.button
                 whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={onLogout}
                 className="w-full flex items-center justify-center gap-2 border border-zinc-200 bg-white text-zinc-700 hover:text-zinc-950 hover:border-zinc-300 rounded-xl px-4 py-2.5 text-xs font-mono font-bold transition-all shadow-sm"
               >
@@ -702,7 +704,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                 <div className="space-y-6">
                   <motion.div variants={fadeInUp} className="mb-8 px-2">
                     <h1 className="text-4xl font-bold tracking-tight text-zinc-950 mb-2">Personalization Studio</h1>
-                    <p className="text-sm text-zinc-500 font-medium">Select a master presentation, target a sponsor, and execute AI synchronization.</p>
+                    <p className="text-sm text-zinc-500 font-medium">Choose a presentation, enter a sponsor's website, and let AI personalize it for you.</p>
                   </motion.div>
 
                   <form onSubmit={handleProposeReplacements} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -711,7 +713,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                     <motion.div variants={fadeInUp} className="lg:col-span-7 bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex flex-col">
                       <div className="flex items-center gap-3 mb-6">
                         <div className="w-8 h-8 rounded-full bg-[#CFEE91] flex items-center justify-center text-[#269755]"><LayoutGrid className="w-4 h-4"/></div>
-                        <h2 className="text-lg font-bold text-zinc-900">1. Master Deck</h2>
+                        <h2 className="text-lg font-bold text-zinc-900">1. Your Presentation</h2>
                       </div>
 
                       {decks.length > 0 ? (
@@ -719,7 +721,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                           {decks.map((deck) => (
                             <motion.div
                               whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
+                              whileTap={{ scale: 0.97 }}
                               key={deck.id}
                               onClick={() => { setSelectedDeckId(deck.id); setCustomFile(null); }}
                               className={`rounded-2xl p-4 flex items-start gap-3 cursor-pointer transition-all border-2 ${
@@ -761,7 +763,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                       <motion.div variants={fadeInUp} className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
                         <div className="flex items-center gap-3 mb-6">
                           <div className="w-8 h-8 rounded-full bg-[#CFEE91] flex items-center justify-center text-[#269755]"><Globe className="w-4 h-4"/></div>
-                          <h2 className="text-lg font-bold text-zinc-900">2. Target Intel</h2>
+                          <h2 className="text-lg font-bold text-zinc-900">2. Sponsor Website</h2>
                         </div>
                         
                         <div className="relative flex items-center focus-within:ring-2 focus-within:ring-[#269755]/20 rounded-xl overflow-hidden shadow-sm border border-zinc-200 bg-white">
@@ -776,7 +778,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                       <motion.div variants={fadeInUp} className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex-1 flex flex-col justify-between">
                         <div className="mb-4">
                           <button type="button" onClick={() => setIsTonePanelOpen(!isTonePanelOpen)} className="w-full flex items-center justify-between text-xs font-semibold text-zinc-600 focus:outline-none">
-                            <span className="flex items-center gap-2"><Sliders className="w-4 h-4 text-zinc-400" /> Advanced Params</span>
+                            <span className="flex items-center gap-2"><Sliders className="w-4 h-4 text-zinc-400" /> Personalization Settings</span>
                             <motion.div animate={{ rotate: isTonePanelOpen ? 180 : 0 }} transition={fastSpring}><ChevronDown className="w-4 h-4 text-zinc-400" /></motion.div>
                           </button>
 
@@ -811,7 +813,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                           type="submit" disabled={(!selectedDeckId && !customFile) || !targetUrl}
                           className="w-full bg-zinc-950 text-white h-14 rounded-xl flex items-center justify-center gap-2 mt-auto hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
                         >
-                          <span className="text-sm font-bold tracking-wide">Synthesize Pitch</span>
+                          <span className="text-sm font-bold tracking-wide">Personalize Pitch</span>
                           <Sparkles className="w-4 h-4" />
                         </MagneticButton>
                       </motion.div>
@@ -829,12 +831,12 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                           <Sparkles className="w-6 h-6 text-zinc-900 animate-pulse" />
                         </div>
                       </motion.div>
-                      <motion.h2 variants={fadeInUp} className="text-2xl font-bold tracking-tight mb-12 text-zinc-900 text-center">Personalizing presentation layers...</motion.h2>
+                      <motion.h2 variants={fadeInUp} className="text-2xl font-bold tracking-tight mb-12 text-zinc-900 text-center">Personalizing your presentation...</motion.h2>
                       <div className="w-full max-w-lg space-y-4 text-left">
                         {[
-                          { step: 1, title: "Extract Presentation Copy", desc: "Recursively traversing shapes and table structures." },
-                          { step: 2, title: "Scrape Target Context", desc: "Analyzing sponsor URL for CSR and structural goals." },
-                          { step: 3, title: "Tonal Synthesis", desc: "Gemini generating layout-constrained replacements." }
+                          { step: 1, title: "Reading your presentation", desc: "Analyzing the text in your slides." },
+                          { step: 2, title: "Researching sponsor", desc: "Learning about the sponsor's goals from their website." },
+                          { step: 3, title: "Writing personalized text", desc: "Creating new text that fits perfectly in your slides." }
                         ].map((item, idx) => {
                           const isActive = logStage >= item.step;
                           const isCurrent = logStage === item.step - 1;
@@ -868,8 +870,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                       <motion.div variants={fadeInUp} className="w-16 h-16 rounded-2xl bg-zinc-50 border border-zinc-200 flex items-center justify-center mb-8 shadow-sm">
                         <Loader2 className="w-6 h-6 text-zinc-900 animate-spin" />
                       </motion.div>
-                      <motion.h3 variants={fadeInUp} className="text-xl font-bold text-zinc-900 mb-3 tracking-tight">Injecting variables and compiling...</motion.h3>
-                      <motion.p variants={fadeInUp} className="text-zinc-500 text-xs font-mono tracking-wide">Executing anti-corruption XML checks</motion.p>
+                      <motion.h3 variants={fadeInUp} className="text-xl font-bold text-zinc-900 mb-3 tracking-tight">Updating your presentation...</motion.h3>
+                      <motion.p variants={fadeInUp} className="text-zinc-500 text-xs font-mono tracking-wide">Finalizing your download...</motion.p>
                     </motion.div>
                   )}
 
@@ -878,13 +880,13 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                       <motion.div variants={fadeInUp} className="w-16 h-16 bg-[#CFEE91] rounded-2xl flex items-center justify-center mb-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
                         <Check className="w-7 h-7 text-[#269755]" strokeWidth={2.5} />
                       </motion.div>
-                      <motion.h1 variants={fadeInUp} className="text-3xl font-bold tracking-tight mb-4 text-zinc-900">Synthesis Complete</motion.h1>
-                      <motion.p variants={fadeInUp} className="text-zinc-500 text-sm mb-12 max-w-md">Your pitch deck has been recursively aligned. Ready for download.</motion.p>
+                      <motion.h1 variants={fadeInUp} className="text-3xl font-bold tracking-tight mb-4 text-zinc-900">Your Pitch is Ready</motion.h1>
+                      <motion.p variants={fadeInUp} className="text-zinc-500 text-sm mb-12 max-w-md">We've personalized your pitch deck for this sponsor. It's ready to download.</motion.p>
 
                       <motion.div variants={fadeInUp} className="grid grid-cols-2 gap-4 w-full mb-10">
                         <div className="bg-zinc-50 rounded-2xl p-6 border border-zinc-100 flex flex-col items-center">
                           <div className="text-3xl font-bold mb-1 text-zinc-900">{replacementsCount}</div>
-                          <div className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase">Strings Adapted</div>
+                          <div className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase">Words Changed</div>
                         </div>
                         <div className="bg-zinc-50 rounded-2xl p-6 border border-zinc-100 flex flex-col items-center">
                           <div className="text-3xl font-bold mb-1 text-zinc-900">{slidesModifiedCount}</div>
@@ -892,7 +894,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                         </div>
                       </motion.div>
 
-                      <motion.a variants={fadeInUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} href={downloadUrl || "#"} download={`FundSync_Personalized.pptx`} className="w-full bg-zinc-950 text-white h-14 flex items-center justify-center gap-3 hover:bg-zinc-800 rounded-xl font-bold shadow-[0_4px_14px_rgba(0,0,0,0.1)] mb-6">
+                      <motion.a variants={fadeInUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} href={downloadUrl || "#"} download={`FundSync_Personalized.pptx`} className="w-full bg-zinc-950 text-white h-14 flex items-center justify-center gap-3 hover:bg-zinc-800 rounded-xl font-bold shadow-[0_4px_14px_rgba(0,0,0,0.1)] mb-6">
                         <Download className="w-4 h-4" /> Download .pptx
                       </motion.a>
                       <motion.button variants={fadeInUp} onClick={resetProcessingState} className="text-zinc-400 font-mono text-[10px] uppercase tracking-widest hover:text-zinc-900 transition-colors">Start New Session</motion.button>
@@ -914,7 +916,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
                 <motion.div variants={fadeInUp} className="relative shrink-0">
                   <input type="file" accept=".pptx" onChange={handleUploadDeck} disabled={isUploadingDeck} className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed z-10" />
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} disabled={isUploadingDeck} className="flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white px-6 py-3 rounded-full text-xs font-mono font-bold tracking-wider shadow-md disabled:opacity-50">
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} disabled={isUploadingDeck} className="flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white px-6 py-3 rounded-full text-xs font-mono font-bold tracking-wider shadow-md disabled:opacity-50">
                     {isUploadingDeck ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                     UPLOAD TEMPLATE
                   </motion.button>
@@ -932,7 +934,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                           <div className="flex flex-col items-center text-zinc-400"><FileText className="w-8 h-8 mb-2" strokeWidth={1.5} /><span className="text-[10px] font-mono tracking-widest uppercase">No Preview</span></div>
                         )}
                         <div className="absolute inset-0 bg-zinc-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-sm">
-                          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => { setSelectedDeckId(deck.id); setCustomFile(null); setActiveTab("studio"); }} className="bg-white text-zinc-950 px-6 py-3 rounded-full text-xs font-bold shadow-xl flex items-center gap-2">
+                          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} onClick={() => { setSelectedDeckId(deck.id); setCustomFile(null); setActiveTab("studio"); }} className="bg-white text-zinc-950 px-6 py-3 rounded-full text-xs font-bold shadow-xl flex items-center gap-2">
                             <Sparkles className="w-4 h-4 text-[#269755]" /> Start Sync
                           </motion.button>
                         </div>
@@ -961,8 +963,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
           {activeTab === "sponsors" && (
             <motion.div key="sponsors" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="w-full h-full max-w-[1200px] mx-auto">
               <motion.div variants={fadeInUp} className="mb-10 px-2">
-                <h1 className="text-4xl font-bold tracking-tight text-zinc-950 mb-2">CRM Hub</h1>
-                <p className="text-sm text-zinc-500 font-medium">Browse extracted corporate dossiers and alignment mandates.</p>
+                <h1 className="text-4xl font-bold tracking-tight text-zinc-950 mb-2">Sponsor Directory</h1>
+                <p className="text-sm text-zinc-500 font-medium">View the information we've researched about your target sponsors.</p>
               </motion.div>
 
               <motion.div variants={fadeInUp} className="flex gap-4 mb-8">
@@ -992,11 +994,11 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                           </div>
 
                           <div className="flex items-center gap-3">
-                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => { setTargetUrl(sponsor.website_url); setActiveTab("studio"); }} className="bg-zinc-900 text-white px-5 py-2.5 rounded-full text-[11px] font-mono font-bold tracking-widest transition-all shadow-md">
+                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => { setTargetUrl(sponsor.website_url); setActiveTab("studio"); }} className="bg-zinc-900 text-white px-5 py-2.5 rounded-full text-[11px] font-mono font-bold tracking-widest transition-all shadow-md">
                               SYNC PITCH
                             </motion.button>
                             <button onClick={() => setExpandedSponsorId(isExpanded ? null : sponsor.id)} className="w-10 h-10 rounded-full border border-zinc-200 flex items-center justify-center text-zinc-500 hover:bg-zinc-50 transition-colors">
-                              <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={fastSpring}><ChevronDown className="w-4 h-4" /></motion.div>
+                              <motion.div animate={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }} transition={fastSpring}><ChevronDown className="w-4 h-4" /></motion.div>
                             </button>
                           </div>
                         </div>
@@ -1005,7 +1007,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                           {isExpanded && (
                             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
                               <div className="mt-6 pt-6 border-t border-zinc-100">
-                                <span className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase font-bold block mb-3 pl-1">Extracted AI Context</span>
+                                <span className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase font-bold block mb-3 pl-1">What we learned</span>
                                 <div className="bg-zinc-50 border border-zinc-200/80 rounded-2xl p-6 text-sm text-zinc-700 leading-relaxed max-h-[300px] overflow-y-auto whitespace-pre-wrap font-medium">
                                   {sponsor.dossier_context || "No context data gathered."}
                                 </div>
@@ -1032,8 +1034,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
           {activeTab === "history" && (
             <motion.div key="history" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="w-full h-full max-w-[1200px] mx-auto">
               <motion.div variants={fadeInUp} className="mb-10 px-2">
-                <h1 className="text-4xl font-bold tracking-tight text-zinc-950 mb-2">Sync History</h1>
-                <p className="text-sm text-zinc-500 font-medium">Audit ledger of previous personalizations and modification counts.</p>
+                <h1 className="text-4xl font-bold tracking-tight text-zinc-950 mb-2">History</h1>
+                <p className="text-sm text-zinc-500 font-medium">A record of all the presentations you've personalized.</p>
               </motion.div>
 
               {history.length > 0 ? (
@@ -1043,7 +1045,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                       <tr className="bg-zinc-50/80 border-b border-zinc-200 text-[10px] font-mono tracking-widest text-zinc-500 uppercase">
                         <th className="py-5 px-8 font-bold">Document</th>
                         <th className="py-5 px-8 font-bold">Target Sponsor</th>
-                        <th className="py-5 px-8 font-bold text-center">Mutations</th>
+                        <th className="py-5 px-8 font-bold text-center">Changes</th>
                         <th className="py-5 px-8 font-bold text-center">Slides</th>
                         <th className="py-5 px-8 font-bold text-right">Timestamp</th>
                       </tr>

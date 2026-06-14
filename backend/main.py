@@ -71,7 +71,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             
         return await call_next(request)
 
-# --- Boot-Time Zombie Purge ---
+# --- Boot-Time Zombie Purge & HTTP Pooling ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Boot-time purge: Cleaning up tmp/ directory...")
@@ -84,7 +84,11 @@ async def lifespan(app: FastAPI):
                 print(f"Purged zombie file: {filename}")
         except Exception as e:
             print(f"Failed to delete {file_path}: {e}")
+            
+    # Setup global HTTP client for connection pooling performance
+    app.state.http_client = httpx.AsyncClient()
     yield
+    await app.state.http_client.aclose()
 
 app = FastAPI(title="FundSync API", lifespan=lifespan)
 
@@ -125,24 +129,28 @@ class CompileRequest(BaseModel):
     replacements: dict
 
 @app.post("/api/propose-replacements")
-async def propose_replacements(request: ProposeRequest):
+async def propose_replacements(request: ProposeRequest, req: Request):
     session_id = str(uuid.uuid4())
 
     try:
+        # Use global connection pool
+        client = getattr(req.app.state, "http_client", httpx.AsyncClient())
+        
         # Download file directly into RAM
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(request.file_url)
-            if resp.status_code != 200:
-                raise HTTPException(status_code=400, detail="Failed to download file from Supabase.")
-            file_buffer = io.BytesIO(resp.content)
-
+        resp = await client.get(request.file_url)
+        if resp.status_code != 200:
+            raise HTTPException(status_code=400, detail="Failed to download file from Supabase.")
+        file_buffer = io.BytesIO(resp.content)
+        
         # 1. Extract text from the loaded buffer
         def run_extract():
             return extract_text_from_pptx(file_buffer)
-        presentation_text = await asyncio.to_thread(run_extract)
         
-        # 2. Scrape the Sponsor URL (includes Safe Mode fallback)
-        sponsor_context = await scrape_target_url(request.target_url)
+        # 2. Run Scraping and Extraction in Parallel
+        presentation_text, sponsor_context = await asyncio.gather(
+            asyncio.to_thread(run_extract),
+            scrape_target_url(request.target_url)
+        )
         
         # 3. Call Gemini to map replacements
         replacements = await generate_replacements_with_gemini(
@@ -153,7 +161,6 @@ async def propose_replacements(request: ProposeRequest):
             custom_focus=request.custom_focus
         )
         
-        # If Gemini fails, return empty proposed replacements
         if not replacements:
             replacements = {}
             
