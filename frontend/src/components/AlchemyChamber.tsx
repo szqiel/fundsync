@@ -33,8 +33,8 @@ interface DiffRow {
   selected: boolean;
 }
 
-const springTransition = { type: "spring", stiffness: 300, damping: 30 };
-const fastSpring = { type: "spring", stiffness: 400, damping: 25 };
+const springTransition = { type: "spring" as const, stiffness: 300, damping: 30 };
+const fastSpring = { type: "spring" as const, stiffness: 400, damping: 25 };
 
 export function AlchemyChamber({ 
   proposedReplacements, 

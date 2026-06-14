@@ -4,3 +4,4 @@ FundSync_PRD_v9.md
 supabase/.temp/
 backend/test*.py
 FundSync_Logo.svg
+.agents/

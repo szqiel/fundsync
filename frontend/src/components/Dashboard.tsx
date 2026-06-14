@@ -63,8 +63,8 @@ interface DashboardProps {
 }
 
 // Premium Spring Physics
-const springTransition = { type: "spring", stiffness: 300, damping: 30 };
-const fastSpring = { type: "spring", stiffness: 400, damping: 25 };
+const springTransition = { type: "spring" as const, stiffness: 300, damping: 30 };
+const fastSpring = { type: "spring" as const, stiffness: 400, damping: 25 };
 
 const staggerContainer: Variants = {
   hidden: { opacity: 0 },
@@ -301,7 +301,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
         const formData = new FormData();
         formData.append("file_url", fileUrl); // Send file_url instead of massive Blob!
-        const thumbResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/generate-thumbnail`, {
+        const thumbResponse = await fetch("http://localhost:8000/api/generate-thumbnail", {
           method: "POST",
           body: formData
         });
@@ -439,7 +439,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     };
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/propose-replacements`, {
+      const response = await fetch("http://localhost:8000/api/propose-replacements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -520,7 +520,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
     setProcessingState("compiling");
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/compile-deck`, {
+      const response = await fetch("http://localhost:8000/api/compile-deck", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

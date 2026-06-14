@@ -12,8 +12,8 @@ import { AmbientBackground } from "@/components/ui/AmbientBackground";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 
 // Premium Spring Physics
-const springTransition = { type: "spring", stiffness: 300, damping: 30 };
-const fastSpring = { type: "spring", stiffness: 400, damping: 25 };
+const springTransition = { type: "spring" as const, stiffness: 300, damping: 30 };
+const fastSpring = { type: "spring" as const, stiffness: 400, damping: 25 };
 
 const fadeInUp: Variants = {
   hidden: { opacity: 0, y: 20, filter: "blur(4px)" },

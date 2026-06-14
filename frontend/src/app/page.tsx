@@ -26,8 +26,8 @@ import { AmbientBackground } from "@/components/ui/AmbientBackground";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 
 // Premium Spring Physics
-const springTransition = { type: "spring", stiffness: 300, damping: 30 };
-const fastSpring = { type: "spring", stiffness: 400, damping: 25 };
+const springTransition = { type: "spring" as const, stiffness: 300, damping: 30 };
+const fastSpring = { type: "spring" as const, stiffness: 400, damping: 25 };
 
 // Framer Motion staggered orchestration
 const staggerContainer: Variants = {
@@ -141,7 +141,7 @@ export default function Home() {
       // 1. Upload guest file securely via backend
       const uploadData = new FormData();
       uploadData.append("file", file);
-      const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/upload-guest`, { method: "POST", body: uploadData });
+      const uploadRes = await fetch("http://localhost:8000/api/upload-guest", { method: "POST", body: uploadData });
       
       if (!uploadRes.ok) {
         let err = "Failed to upload demo file.";
@@ -153,7 +153,7 @@ export default function Home() {
       setProcessingFileUrl(file_url);
 
       // 2. Synthesize replacements
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/propose-replacements`, {
+      const response = await fetch("http://localhost:8000/api/propose-replacements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -179,7 +179,6 @@ export default function Home() {
       setSessionId(data.session_id);
       setScrapedContext(data.sponsor_context);
       setAppState("alchemy");
-
     } catch (error: any) {
       console.error("Propose replacements failed:", error);
       toast.error(error.message || "Failed to contact AI. Please verify backend is running.");
@@ -192,7 +191,7 @@ export default function Home() {
     setAppState("compiling");
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/compile-deck`, {
+      const response = await fetch("http://localhost:8000/api/compile-deck", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
