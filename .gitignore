@@ -5,3 +5,12 @@ supabase/.temp/
 backend/test*.py
 FundSync_Logo.svg
 .agents/
+
+# Ignore markdown docs
+*.md
+!README.md
+!frontend/README.md
+
+# OS Junks
+.DS_Store
+Thumbs.db
