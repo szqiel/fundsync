@@ -1,13 +1,12 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Bypass ESLint errors pas lagi build
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Bypass TypeScript errors pas lagi build
   typescript: {
     ignoreBuildErrors: true,
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
