@@ -326,3 +326,7 @@ async def generate_thumbnail(
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.get("/ping")
+async def ping():
+    return {"status": "FundSync alive and kicking, dawg!"}
