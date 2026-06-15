@@ -66,24 +66,29 @@ In high-stakes environments, personalization closes deals. FundSync transforms a
 └── DESIGN.md           # Visual style guide and design system rules
 ```
 
+## 🌍 Production Deployment Architecture
+
+FundSync is currently deployed using a split-stack architecture to handle AI processing loads without serverless timeouts:
+
+1.  **Frontend (Next.js): Hosted on Vercel**
+    *   Connects to Supabase for Auth & Storage.
+    *   Uses `NEXT_PUBLIC_API_URL` to route heavy requests to the backend.
+2.  **Backend (FastAPI): Hosted on Hugging Face Spaces (Docker/Linux)**
+    *   Runs the heavy `python-pptx` and `Gemini` workloads.
+    *   *Note: Server-Sent Events (SSE) streaming was removed in favor of a highly stable, parallelized JSON payload architecture to prevent UI crashes and stream parsing errors.*
+
 ---
 
-## ⚙️ Setup & Environment
+## ⚙️ Environment Variables
 
-### Environment Variables
-
-**Backend (`backend/.env`):**
+**Backend (`backend/.env` - Hugging Face Secrets):**
 *   `GEMINI_API_KEY`: Google AI Studio key.
 *   `FIRECRAWL_API_KEY`: For sponsor website scraping.
 *   `CLOUDCONVERT_API_KEY`: For PPTX -> PNG thumbnail generation.
 *   `NEXT_PUBLIC_SUPABASE_URL`: Supabase project endpoint.
 *   `SUPABASE_SERVICE_ROLE_KEY`: Admin key for RLS-bypassing storage operations.
 
-**Frontend (`frontend/.env.local`):**
+**Frontend (Vercel Environment Variables):**
 *   `NEXT_PUBLIC_SUPABASE_URL`
 *   `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-### Running the Project
-1.  **Backend:** `cd backend && uvicorn main:app --reload`
-2.  **Frontend:** `cd frontend && npm run dev`
-3.  **Supabase:** `supabase start` (requires Docker)
+*   `NEXT_PUBLIC_API_URL`: Direct URL to the Hugging Face Space (e.g., `https://fundsync-fundsync-backend.hf.space`)
