@@ -113,11 +113,11 @@ export function AlchemyChamber({
       >
         <div>
           <div className="flex items-center gap-2 mb-3">
-            <span className="bg-[#CFEE91]/40 border border-[#CFEE91]/50 text-[#269755] text-[10px] font-mono font-bold px-3 py-1 tracking-widest uppercase rounded-full flex items-center gap-1.5">
+            <span className="bg-primary/40 border border-primary/50 text-secondary text-[10px] font-mono font-bold px-3 py-1 tracking-widest uppercase rounded-full flex items-center gap-1.5">
               <Sparkles className="w-3 h-3" /> Review Changes
             </span>
           </div>
-          <h2 className="text-3xl font-bold tracking-tight text-zinc-950 mb-2">
+          <h2 className="text-3xl font-bold tracking-tight text-foreground mb-2">
             Review & Edit
           </h2>
           <p className="text-sm text-zinc-500 max-w-xl font-medium">
@@ -139,7 +139,7 @@ export function AlchemyChamber({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleFinalCompile}
-            className="bg-foreground text-background px-7 py-3.5 rounded-full text-xs font-mono font-bold tracking-wider transition-all flex items-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.1)] min-h-[44px]"
+            className="bg-primary text-primary-foreground px-7 py-3.5 rounded-full text-xs font-mono font-bold tracking-wider transition-[transform,shadow,background-color] flex items-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.1)] min-h-[44px] active:scale-97 hover:bg-primary/90"
           >
             COMPILE DECK <ArrowRight className="w-4 h-4" />
           </motion.button>
@@ -178,7 +178,7 @@ export function AlchemyChamber({
             </div>
 
             <div className="flex items-center gap-4 pr-2 text-[10px] tracking-widest">
-              <button onClick={() => handleBulkSelect(true)} className="p-2 -my-2 text-[#269755] hover:text-[#1d7240] font-bold transition-colors min-h-[44px] min-w-[44px]">
+              <button onClick={() => handleBulkSelect(true)} className="p-2 -my-2 text-secondary hover:text-secondary/80 font-bold transition-colors min-h-[44px] min-w-[44px]">
                 SELECT ALL
               </button>
               <span className="text-zinc-300">|</span>
@@ -209,7 +209,7 @@ export function AlchemyChamber({
                       key={row.id}
                       className={`transition-all p-6 relative rounded-[1.5rem] shadow-sm backdrop-blur-md overflow-hidden ${
                         row.selected 
-                          ? "bg-card border-2 border-[#269755]/20 shadow-[0_4px_20px_rgba(16,185,129,0.03)]" 
+                          ? "bg-card border-2 border-secondary/20 shadow-sm" 
                           : "bg-card/40 border-2 border-border/50 opacity-60 hover:opacity-100"
                       }`}
                     >
@@ -230,7 +230,7 @@ export function AlchemyChamber({
                               type="button"
                               onClick={() => setRows(prev => prev.map(r => r.id === row.id ? { ...r, selected: true } : r))}
                               className={`px-4 py-2 text-[10px] font-mono font-bold transition-all rounded-md flex items-center gap-1.5 min-h-[38px] ${
-                                row.selected ? "bg-[#CFEE91]/40 text-[#1d7240] shadow-sm" : "text-muted-foreground hover:text-foreground"
+                                row.selected ? "bg-primary/40 text-secondary/80 shadow-sm" : "text-muted-foreground hover:text-foreground"
                               }`}
                             >
                               <Check className="w-3.5 h-3.5" /> Approve
@@ -238,7 +238,7 @@ export function AlchemyChamber({
                           </div>
                           
                           <span className={`text-[9px] font-mono font-bold px-3 py-1.5 tracking-widest uppercase rounded-full ${
-                            row.selected ? "bg-[#269755]/10 text-[#269755]" : "bg-muted text-muted-foreground"
+                            row.selected ? "bg-secondary/10 text-secondary" : "bg-muted text-muted-foreground"
                           }`}>
                             {row.selected ? "Will Sync" : "Preserving Original"}
                           </span>
@@ -251,7 +251,7 @@ export function AlchemyChamber({
                               animate={{ opacity: 1, x: 0 }}
                               exit={{ opacity: 0 }}
                               onClick={() => handleResetRow(row.id)}
-                              className="text-zinc-400 hover:text-zinc-900 flex items-center gap-1.5 hover:underline text-[10px] font-mono uppercase tracking-widest transition-colors"
+                              className="text-zinc-400 hover:text-foreground flex items-center gap-1.5 hover:underline text-[10px] font-mono uppercase tracking-widest transition-colors"
                               title="Reset to AI proposal"
                             >
                               <RotateCcw className="w-3 h-3" /> Restore AI Edit
@@ -274,7 +274,7 @@ export function AlchemyChamber({
 
                         {/* Right: Proposal (Editable) */}
                         <div className="space-y-3">
-                          <span className="text-[10px] font-mono tracking-widest text-[#269755] uppercase font-bold flex items-center justify-between">
+                          <span className="text-[10px] font-mono tracking-widest text-secondary uppercase font-bold flex items-center justify-between">
                             <span className="flex items-center gap-2"><Sparkles className="w-3.5 h-3.5" /> Custom Target</span>
                             <span className={`font-normal lowercase ${isTooLong ? "text-red-500 font-bold" : "text-zinc-400"}`}>
                               {row.current.length} chars (orig: {originalLength})
@@ -289,7 +289,7 @@ export function AlchemyChamber({
                                 ? "bg-transparent border-border text-muted-foreground resize-none opacity-50" 
                                 : isTooLong
                                   ? "bg-red-50/30 border-red-300 text-foreground focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
-                                  : "bg-card border-border text-foreground focus:border-[#269755] focus:ring-4 focus:ring-[#269755]/10 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                                  : "bg-card border-border text-foreground focus:border-secondary focus:ring-4 focus:ring-secondary/10 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
                             }`}
                           />
                         </div>
@@ -333,7 +333,7 @@ export function AlchemyChamber({
           
           <div className="bg-card/70 backdrop-blur-xl border border-border p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)] rounded-[2rem] flex flex-col gap-4 sticky top-24">
             <div className="text-[10px] font-mono tracking-widest text-foreground uppercase font-bold flex items-center gap-2 border-b border-border pb-4">
-              <Layers className="w-4 h-4 text-[#269755]" />
+              <Layers className="w-4 h-4 text-secondary" />
               Sponsor Research
             </div>
             

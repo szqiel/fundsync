@@ -52,7 +52,7 @@ export default function About() {
           </Link>
           <Link href="/auth">
             <MagneticButton 
-              className="bg-zinc-950 text-white px-5 py-2.5 rounded-full transition-all duration-150 ease-out active:scale-97 text-[11px] font-mono font-semibold tracking-widest flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-zinc-800"
+              className="bg-primary text-primary-foreground px-5 py-2.5 rounded-full transition-all duration-150 ease-out active:scale-97 text-[11px] font-mono font-semibold tracking-widest flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-primary/90"
             >
               WORKSPACE <ArrowRight className="w-3.5 h-3.5" />
             </MagneticButton>
@@ -84,7 +84,7 @@ export default function About() {
           >
             {/* Card 1: SCRAPE */}
             <motion.div variants={itemVariants} className="bg-white/60 backdrop-blur-2xl border border-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_24px_48px_-12px_rgba(0,0,0,0.05)] rounded-[2rem] p-8 flex flex-col relative group overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#CFEE91]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
               <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-8 text-zinc-900 shadow-sm border border-zinc-100 relative z-10">
                 <Search className="w-6 h-6" strokeWidth={1.5} />
               </div>
@@ -101,7 +101,7 @@ export default function About() {
 
             {/* Card 2: MAP */}
             <motion.div variants={itemVariants} className="bg-white/60 backdrop-blur-2xl border border-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_24px_48px_-12px_rgba(0,0,0,0.05)] rounded-[2rem] p-8 flex flex-col relative group overflow-hidden md:-translate-y-4">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#CFEE91]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
               <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-8 text-zinc-900 shadow-sm border border-zinc-100 relative z-10">
                 <Compass className="w-6 h-6" strokeWidth={1.5} />
               </div>
@@ -118,7 +118,7 @@ export default function About() {
 
             {/* Card 3: SYNC */}
             <motion.div variants={itemVariants} className="bg-white/60 backdrop-blur-2xl border border-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_24px_48px_-12px_rgba(0,0,0,0.05)] rounded-[2rem] p-8 flex flex-col relative group overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#CFEE91]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
               <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-8 text-zinc-900 shadow-sm border border-zinc-100 relative z-10">
                 <RefreshCcw className="w-6 h-6" strokeWidth={1.5} />
               </div>
@@ -143,7 +143,7 @@ export default function About() {
               Ready to scale your outreach?
             </h2>
             <Link href="/auth">
-              <MagneticButton className="bg-zinc-950 text-white px-8 py-4 rounded-full font-mono text-xs font-semibold tracking-widest uppercase transition-all duration-150 ease-out active:scale-97 flex items-center gap-2 shadow-[0_8px_24px_rgba(0,0,0,0.15)] hover:bg-zinc-800">
+              <MagneticButton className="bg-primary text-primary-foreground px-8 py-4 rounded-full font-mono text-xs font-semibold tracking-widest uppercase transition-all duration-150 ease-out active:scale-97 flex items-center gap-2 shadow-[0_8px_24px_rgba(0,0,0,0.15)] hover:bg-primary/90">
                 Get Started Now <ArrowUpRight className="w-4 h-4" />
               </MagneticButton>
             </Link>
