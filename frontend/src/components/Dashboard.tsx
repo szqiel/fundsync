@@ -649,7 +649,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                     onClick={() => { setActiveTab(item.id as any); resetProcessingState(); }}
                     className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all duration-150 ease-out active:scale-97 min-h-[44px] ${
                       activeTab === item.id
-                        ? "bg-foreground text-background shadow-md shadow-foreground/10"
+                        ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     }`}
                   >
@@ -703,7 +703,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
               {!isProcessing ? (
                 <div className="space-y-6">
                   <motion.div variants={fadeInUp} className="mb-8 px-2">
-                    <h1 className="text-4xl font-bold tracking-tight text-zinc-950 mb-2">Personalization Studio</h1>
+                    <h1 className="text-4xl font-bold tracking-tight text-foreground mb-2">Personalization Studio</h1>
                     <p className="text-sm text-zinc-500 font-medium">Choose a presentation, enter a sponsor's website, and let AI personalize it for you.</p>
                   </motion.div>
 
@@ -712,7 +712,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                     {/* Left Column: Deck Selection (Bento Tile 1) */}
                     <motion.div variants={fadeInUp} className="lg:col-span-7 bg-card/70 backdrop-blur-xl border border-border rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex flex-col">
                       <div className="flex items-center gap-3 mb-6">
-                        <div className="w-8 h-8 rounded-full bg-[#CFEE91] flex items-center justify-center text-[#269755]"><LayoutGrid className="w-4 h-4"/></div>
+                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground"><LayoutGrid className="w-4 h-4"/></div>
                         <h2 className="text-lg font-bold text-foreground">1. Your Presentation</h2>
                       </div>
 
@@ -726,11 +726,11 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                               onClick={() => { setSelectedDeckId(deck.id); setCustomFile(null); }}
                               className={`rounded-2xl p-4 flex items-start gap-3 cursor-pointer transition-all border-2 min-h-[56px] ${
                                 selectedDeckId === deck.id && !customFile
-                                  ? "border-[#269755] bg-[#CFEE91]/40 shadow-sm"
+                                  ? "border-secondary bg-primary/40 shadow-sm"
                                   : "border-border bg-card hover:border-border/80"
                               }`}
                             >
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${selectedDeckId === deck.id && !customFile ? "bg-[#269755] text-white" : "bg-muted text-muted-foreground"}`}>
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${selectedDeckId === deck.id && !customFile ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
                                 <FileText className="w-4 h-4" />
                               </div>
                               <div className="flex-1 min-w-0">
@@ -749,7 +749,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                       <div className="mt-auto pt-6 border-t border-border">
                         <div className="relative group">
                           <input type="file" id="studio-deck-upload" accept=".pptx" onChange={(e) => { setCustomFile(e.target.files?.[0] || null); setSelectedDeckId(""); }} aria-label="Upload custom PowerPoint presentation file" className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                          <div className={`w-full rounded-xl border-2 border-dashed flex items-center justify-center p-4 transition-colors ${customFile ? "border-[#269755]/50 bg-[#CFEE91]/40 text-[#1d7240]" : "border-border bg-card hover:border-border/80 text-muted-foreground"}`}>
+                          <div className={`w-full rounded-xl border-2 border-dashed flex items-center justify-center p-4 transition-colors ${customFile ? "border-secondary/50 bg-primary/40 text-secondary" : "border-border bg-card hover:border-border/80 text-muted-foreground"}`}>
                             <Upload className="w-4 h-4 mr-2" />
                             <span className="text-xs font-semibold">{customFile ? customFile.name : "Or upload one-off .pptx"}</span>
                           </div>
@@ -762,11 +762,11 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                       
                       <motion.div variants={fadeInUp} className="bg-card/70 backdrop-blur-xl border border-border rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
                         <div className="flex items-center gap-3 mb-6">
-                          <div className="w-8 h-8 rounded-full bg-[#CFEE91] flex items-center justify-center text-[#269755]"><Globe className="w-4 h-4"/></div>
+                          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground"><Globe className="w-4 h-4"/></div>
                           <label htmlFor="studio-sponsor-url" className="text-lg font-bold text-foreground cursor-pointer">2. Sponsor Website</label>
                         </div>
                         
-                        <div className="relative flex items-center focus-within:ring-2 focus-within:ring-[#269755]/20 rounded-xl overflow-hidden shadow-sm border border-border bg-card">
+                        <div className="relative flex items-center focus-within:ring-2 focus-within:ring-secondary/20 rounded-xl overflow-hidden shadow-sm border border-border bg-card">
                           <div className="pl-4 pr-2"><Link2 className="w-4 h-4 text-muted-foreground" /></div>
                           <input
                             type="url" 
@@ -797,7 +797,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                                       <span className="text-foreground font-bold">{toneFormal < 35 ? "Creative" : toneFormal > 65 ? "Corporate" : "Balanced"}</span>
                                       <span>Formal</span>
                                     </div>
-                                    <input type="range" aria-label="Tone Formal vs Creative" min="0" max="100" value={toneFormal} onChange={(e) => setToneFormal(parseInt(e.target.value, 10))} className="w-full h-1 bg-muted rounded-full appearance-none cursor-pointer accent-foreground" />
+                                    <input type="range" aria-label="Tone Formal vs Creative" min="0" max="100" value={toneFormal} onChange={(e) => setToneFormal(parseInt(e.target.value, 10))} className="w-full h-1 bg-muted rounded-full appearance-none cursor-pointer accent-primary" />
                                   </div>
                                   <div className="space-y-2">
                                     <div className="flex justify-between text-[10px] font-mono text-muted-foreground font-medium">
@@ -805,7 +805,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                                       <span className="text-foreground font-bold">{toneTechnical < 35 ? "Social" : toneTechnical > 65 ? "Technical" : "Balanced"}</span>
                                       <span>Tech</span>
                                     </div>
-                                    <input type="range" aria-label="Tone Technical vs Impact" min="0" max="100" value={toneTechnical} onChange={(e) => setToneTechnical(parseInt(e.target.value, 10))} className="w-full h-1 bg-muted rounded-full appearance-none cursor-pointer accent-foreground" />
+                                    <input type="range" aria-label="Tone Technical vs Impact" min="0" max="100" value={toneTechnical} onChange={(e) => setToneTechnical(parseInt(e.target.value, 10))} className="w-full h-1 bg-muted rounded-full appearance-none cursor-pointer accent-primary" />
                                   </div>
                                   <textarea aria-label="Custom personalization directives" placeholder="Custom directive..." value={customFocus} onChange={(e) => setCustomFocus(e.target.value)} rows={2} className="w-full p-3 bg-muted border border-border rounded-xl text-xs text-foreground outline-none resize-none" />
                                 </div>
@@ -816,7 +816,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
                         <MagneticButton
                           type="submit" disabled={(!selectedDeckId && !customFile) || !targetUrl}
-                          className="w-full bg-zinc-950 text-white h-14 rounded-xl flex items-center justify-center gap-2 mt-auto hover:bg-zinc-800 transition-all duration-150 ease-out active:scale-97 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
+                          className="w-full bg-primary text-primary-foreground h-14 rounded-xl flex items-center justify-center gap-2 mt-auto hover:bg-primary/90 transition-all duration-150 ease-out active:scale-97 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
                         >
                           <span className="text-sm font-bold tracking-wide">Personalize Pitch</span>
                           <Sparkles className="w-4 h-4" />
@@ -831,12 +831,12 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                   {processingState === "fetching" && (
                     <motion.div key="fetching" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="flex flex-col items-center justify-center min-h-[calc(100dvh-16rem)]">
                       <motion.div variants={fadeInUp} className="relative w-24 h-24 mb-12 flex items-center justify-center">
-                        <div className="absolute w-full h-full rounded-full border border-zinc-200 border-t-zinc-900 animate-spin" style={{ animationDuration: '2s' }} />
+                        <div className="absolute w-full h-full rounded-full border border-zinc-200 border-t-primary animate-spin" style={{ animationDuration: '2s' }} />
                         <div className="absolute w-16 h-16 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center shadow-sm">
-                          <Sparkles className="w-6 h-6 text-zinc-900 animate-pulse" />
+                          <Sparkles className="w-6 h-6 text-primary animate-pulse" />
                         </div>
                       </motion.div>
-                      <motion.h2 variants={fadeInUp} className="text-2xl font-bold tracking-tight mb-12 text-zinc-900 text-center">Personalizing your presentation...</motion.h2>
+                      <motion.h2 variants={fadeInUp} className="text-2xl font-bold tracking-tight mb-12 text-foreground text-center">Personalizing your presentation...</motion.h2>
                       <div className="w-full max-w-lg space-y-4 text-left">
                         {[
                           { step: 1, title: "Reading your presentation", desc: "Analyzing the text in your slides." },
@@ -847,11 +847,11 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                           const isCurrent = logStage === item.step - 1;
                           return (
                             <motion.div key={item.step} variants={fadeInUp} className={`flex items-start gap-4 p-5 rounded-2xl border transition-all duration-700 ${isActive ? "bg-white border-zinc-200 shadow-sm" : isCurrent ? "bg-zinc-50 border-zinc-200" : "bg-transparent border-transparent opacity-40"}`}>
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-colors duration-700 ${isActive ? "bg-zinc-900 text-white" : isCurrent ? "border border-zinc-300 text-zinc-500" : "border border-zinc-200 text-zinc-300"}`}>
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-colors duration-700 ${isActive ? "bg-primary text-primary-foreground" : isCurrent ? "border border-zinc-300 text-zinc-500" : "border border-zinc-200 text-zinc-300"}`}>
                                 {isActive ? <Check className="w-3 h-3" /> : <div className={`w-1.5 h-1.5 rounded-full ${isCurrent ? 'bg-zinc-400 animate-ping' : 'bg-zinc-300'}`} />}
                               </div>
                               <div>
-                                <h4 className={`text-sm font-semibold transition-colors duration-700 ${isActive ? "text-zinc-900" : isCurrent ? "text-zinc-700" : "text-zinc-400"}`}>{item.title}</h4>
+                                <h4 className={`text-sm font-semibold transition-colors duration-700 ${isActive ? "text-foreground" : isCurrent ? "text-zinc-700" : "text-zinc-400"}`}>{item.title}</h4>
                                 <p className={`text-xs mt-1 transition-colors duration-700 ${isActive || isCurrent ? "text-zinc-500" : "text-zinc-400"}`}>{item.desc}</p>
                               </div>
                             </motion.div>
@@ -873,33 +873,33 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                   {processingState === "compiling" && (
                     <motion.div key="compiling" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="flex flex-col items-center justify-center min-h-[calc(100dvh-16rem)]">
                       <motion.div variants={fadeInUp} className="w-16 h-16 rounded-2xl bg-zinc-50 border border-zinc-200 flex items-center justify-center mb-8 shadow-sm">
-                        <Loader2 className="w-6 h-6 text-zinc-900 animate-spin" />
+                        <Loader2 className="w-6 h-6 text-primary animate-spin" />
                       </motion.div>
-                      <motion.h3 variants={fadeInUp} className="text-xl font-bold text-zinc-900 mb-3 tracking-tight">Updating your presentation...</motion.h3>
+                      <motion.h3 variants={fadeInUp} className="text-xl font-bold text-foreground mb-3 tracking-tight">Updating your presentation...</motion.h3>
                       <motion.p variants={fadeInUp} className="text-zinc-500 text-xs font-mono tracking-wide">Finalizing your download...</motion.p>
                     </motion.div>
                   )}
 
                   {processingState === "success" && (
                     <motion.div key="success" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="max-w-2xl mx-auto bg-white border border-zinc-200/60 rounded-[2.5rem] p-12 flex flex-col items-center shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] text-center my-auto mt-20">
-                      <motion.div variants={fadeInUp} className="w-16 h-16 bg-[#CFEE91] rounded-2xl flex items-center justify-center mb-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-                        <Check className="w-7 h-7 text-[#269755]" strokeWidth={2.5} />
+                      <motion.div variants={fadeInUp} className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mb-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                        <Check className="w-7 h-7 text-secondary" strokeWidth={2.5} />
                       </motion.div>
-                      <motion.h1 variants={fadeInUp} className="text-3xl font-bold tracking-tight mb-4 text-zinc-900">Your Pitch is Ready</motion.h1>
+                      <motion.h1 variants={fadeInUp} className="text-3xl font-bold tracking-tight mb-4 text-foreground">Your Pitch is Ready</motion.h1>
                       <motion.p variants={fadeInUp} className="text-zinc-500 text-sm mb-12 max-w-md">We've personalized your pitch deck for this sponsor. It's ready to download.</motion.p>
 
                       <motion.div variants={fadeInUp} className="grid grid-cols-2 gap-4 w-full mb-10">
                         <div className="bg-zinc-50 rounded-2xl p-6 border border-zinc-100 flex flex-col items-center">
-                          <div className="text-3xl font-bold mb-1 text-zinc-900">{replacementsCount}</div>
+                          <div className="text-3xl font-bold mb-1 text-foreground">{replacementsCount}</div>
                           <div className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase">Words Changed</div>
                         </div>
                         <div className="bg-zinc-50 rounded-2xl p-6 border border-zinc-100 flex flex-col items-center">
-                          <div className="text-3xl font-bold mb-1 text-zinc-900">{slidesModifiedCount}</div>
+                          <div className="text-3xl font-bold mb-1 text-foreground">{slidesModifiedCount}</div>
                           <div className="text-[10px] font-mono text-zinc-400 tracking-widest uppercase">Slides Modified</div>
                         </div>
                       </motion.div>
 
-                      <motion.a variants={fadeInUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} href={downloadUrl || "#"} download={`FundSync_Personalized.pptx`} className="w-full bg-zinc-950 text-white h-14 flex items-center justify-center gap-3 hover:bg-zinc-800 rounded-xl font-bold shadow-[0_4px_14px_rgba(0,0,0,0.1)] mb-6">
+                      <motion.a variants={fadeInUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} href={downloadUrl || "#"} download={`FundSync_Personalized.pptx`} className="w-full bg-primary text-primary-foreground h-14 flex items-center justify-center gap-3 hover:bg-primary/90 rounded-xl font-bold shadow-[0_4px_14px_rgba(0,0,0,0.1)] mb-6">
                         <Download className="w-4 h-4" /> Download .pptx
                       </motion.a>
                       <motion.button variants={fadeInUp} onClick={resetProcessingState} className="text-zinc-400 font-mono text-[10px] uppercase tracking-widest hover:text-zinc-900 transition-colors">Start New Session</motion.button>
@@ -915,13 +915,13 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
             <motion.div key="decks" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="w-full h-full max-w-[1400px] mx-auto">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10 px-2">
                 <motion.div variants={fadeInUp}>
-                  <h1 className="text-4xl font-bold tracking-tight text-zinc-950 mb-2">Decks Library</h1>
+                  <h1 className="text-4xl font-bold tracking-tight text-foreground mb-2">Decks Library</h1>
                   <p className="text-sm text-zinc-500 font-medium">Manage base presentation templates in your Cloud storage.</p>
                 </motion.div>
 
                 <motion.div variants={fadeInUp} className="relative shrink-0">
                   <input type="file" accept=".pptx" onChange={handleUploadDeck} disabled={isUploadingDeck} className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed z-10" />
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} disabled={isUploadingDeck} className="flex items-center gap-2 bg-zinc-950 hover:bg-zinc-800 text-white px-6 py-3 rounded-full text-xs font-mono font-bold tracking-wider shadow-md disabled:opacity-50">
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} disabled={isUploadingDeck} className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-full text-xs font-mono font-bold tracking-wider shadow-md disabled:opacity-50">
                     {isUploadingDeck ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                     UPLOAD TEMPLATE
                   </motion.button>
@@ -940,7 +940,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                         )}
                         <div className="absolute inset-0 bg-zinc-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-sm">
                           <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} onClick={() => { setSelectedDeckId(deck.id); setCustomFile(null); setActiveTab("studio"); }} className="bg-card text-foreground px-6 py-3 rounded-full text-xs font-bold shadow-xl flex items-center gap-2 active:scale-97 duration-150 ease-out">
-                            <Sparkles className="w-4 h-4 text-[#269755]" /> Start Sync
+                            <Sparkles className="w-4 h-4 text-secondary" /> Start Sync
                           </motion.button>
                         </div>
                       </div>
@@ -963,7 +963,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                   <p className="text-sm text-muted-foreground max-w-sm mb-8">Upload your first `.pptx` template. It will be safely saved in Cloud Storage for future synchronizations.</p>
                   <div className="relative group">
                     <input type="file" accept=".pptx" onChange={handleUploadDeck} disabled={isUploadingDeck} aria-label="Upload PowerPoint Master Presentation" className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed z-10" />
-                    <button disabled={isUploadingDeck} className="bg-zinc-950 text-white hover:bg-zinc-800 px-6 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all duration-150 ease-out active:scale-97 shadow-sm disabled:opacity-50">
+                    <button disabled={isUploadingDeck} className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all duration-150 ease-out active:scale-97 shadow-sm disabled:opacity-50">
                       {isUploadingDeck ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                       Upload Presentation
                     </button>
@@ -978,7 +978,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
           {activeTab === "sponsors" && (
             <motion.div key="sponsors" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="w-full h-full max-w-[1200px] mx-auto">
               <motion.div variants={fadeInUp} className="mb-10 px-2">
-                <h1 className="text-4xl font-bold tracking-tight text-zinc-950 mb-2">Sponsor Directory</h1>
+                <h1 className="text-4xl font-bold tracking-tight text-foreground mb-2">Sponsor Directory</h1>
                 <p className="text-sm text-zinc-500 font-medium">View the information we've researched about your target sponsors.</p>
               </motion.div>
 
@@ -1009,14 +1009,14 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                             </div>
                             <div>
                               <h3 className="text-xl font-bold text-foreground">{sponsor.name}</h3>
-                              <a href={sponsor.website_url} target="_blank" rel="noreferrer" className="text-xs text-zinc-400 hover:text-[#269755] font-mono flex items-center gap-1.5 mt-1 transition-colors">
+                              <a href={sponsor.website_url} target="_blank" rel="noreferrer" className="text-xs text-zinc-400 hover:text-secondary font-mono flex items-center gap-1.5 mt-1 transition-colors">
                                 <Globe className="w-3 h-3" /> {sponsor.website_url}
                               </a>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-3">
-                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => { setTargetUrl(sponsor.website_url); setActiveTab("studio"); }} className="bg-zinc-900 text-white px-5 py-2.5 rounded-full text-[11px] font-mono font-bold tracking-widest transition-all duration-150 ease-out active:scale-97 shadow-md">
+                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => { setTargetUrl(sponsor.website_url); setActiveTab("studio"); }} className="bg-primary text-primary-foreground px-5 py-2.5 rounded-full text-[11px] font-mono font-bold tracking-widest transition-all duration-150 ease-out active:scale-97 shadow-md">
                               SYNC PITCH
                             </motion.button>
                             <button onClick={() => setExpandedSponsorId(isExpanded ? null : sponsor.id)} aria-label="Expand sponsor research details" className="w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors min-h-[44px] min-w-[44px]">
@@ -1045,7 +1045,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
               ) : (
                 <motion.div variants={fadeInUp} className="bg-white/50 border border-zinc-200/60 rounded-[2.5rem] p-24 flex flex-col items-center text-center">
                   <Database className="w-12 h-12 text-zinc-300 mb-6" strokeWidth={1} />
-                  <h3 className="text-xl font-bold text-zinc-900 mb-2">No corporate profiles</h3>
+                  <h3 className="text-xl font-bold text-foreground mb-2">No corporate profiles</h3>
                   <p className="text-sm text-zinc-500 max-w-sm">Sponsors are cataloged automatically after you execute a personalization sync.</p>
                 </motion.div>
               )}
@@ -1056,7 +1056,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
           {activeTab === "history" && (
             <motion.div key="history" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="w-full h-full max-w-[1200px] mx-auto">
               <motion.div variants={fadeInUp} className="mb-10 px-2">
-                <h1 className="text-4xl font-bold tracking-tight text-zinc-950 mb-2">History</h1>
+                <h1 className="text-4xl font-bold tracking-tight text-foreground mb-2">History</h1>
                 <p className="text-sm text-zinc-500 font-medium">A record of all the presentations you've personalized.</p>
               </motion.div>
 
@@ -1076,7 +1076,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                       {history.map((item, idx) => (
                         <motion.tr variants={fadeInUp} custom={idx} key={item.id} className="hover:bg-muted/50 transition-colors">
                           <td className="py-5 px-8 text-foreground max-w-[250px] truncate" title={item.deck_name}>{item.deck_name}</td>
-                          <td className="py-5 px-8 text-[#269755] font-bold">{item.sponsor_name}</td>
+                          <td className="py-5 px-8 text-secondary font-bold">{item.sponsor_name}</td>
                           <td className="py-5 px-8 text-center"><span className="bg-muted px-3 py-1 rounded-full text-xs font-mono font-bold text-muted-foreground">{item.replacements_count}</span></td>
                           <td className="py-5 px-8 text-center"><span className="bg-muted px-3 py-1 rounded-full text-xs font-mono font-bold text-muted-foreground">{item.slides_modified}</span></td>
                           <td className="py-5 px-8 text-right text-muted-foreground font-mono text-[10px]">{new Date(item.created_at).toLocaleString()}</td>
@@ -1092,8 +1092,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                   </div>
                   <h3 className="text-xl font-bold text-foreground mb-2">No ledger records</h3>
                   <p className="text-sm text-muted-foreground max-w-sm mb-8">A historical log of sync events will compile here automatically after you personalize your first presentation.</p>
-                  <button onClick={() => setActiveTab("studio")} className="bg-zinc-950 text-white hover:bg-zinc-800 px-6 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all duration-150 ease-out active:scale-97 shadow-sm">
-                    <Sparkles className="w-4 h-4 text-[#CFEE91]" /> Go to Studio
+                  <button onClick={() => setActiveTab("studio")} className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all duration-150 ease-out active:scale-97 shadow-sm">
+                    <Sparkles className="w-4 h-4 text-primary-foreground/80" /> Go to Studio
                   </button>
                 </motion.div>
               )}

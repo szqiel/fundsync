@@ -102,7 +102,7 @@ export default function AuthPage() {
       
       {/* Abstract Background Noise / Blur */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[10%] -left-[10%] w-[50vw] h-[50vw] rounded-full bg-[#CFEE91]/40 blur-[120px] opacity-60" />
+        <div className="absolute top-[10%] -left-[10%] w-[50vw] h-[50vw] rounded-full bg-primary/40 blur-[120px] opacity-60" />
         <div className="absolute -bottom-[20%] right-[10%] w-[60vw] h-[60vw] rounded-full bg-zinc-200/50 blur-[100px] opacity-60" />
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.015] mix-blend-overlay" />
       </div>
@@ -133,7 +133,7 @@ export default function AuthPage() {
           className="w-full max-w-[440px] bg-white/70 backdrop-blur-2xl border border-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_24px_48px_-12px_rgba(0,0,0,0.08)] p-10 sm:p-12 rounded-[2.5rem]"
         >
           <div className="flex flex-col items-center text-center mb-8">
-            <div className="w-16 h-16 bg-[#CFEE91]/40 rounded-[1.25rem] flex items-center justify-center mb-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-[#CFEE91]/50 overflow-hidden">
+            <div className="w-16 h-16 bg-primary/40 rounded-[1.25rem] flex items-center justify-center mb-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] border border-primary/50 overflow-hidden">
               <Image src="/FundSync_Logo.svg" alt="FundSync Logo" width={64} height={64} className="object-contain" />
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-zinc-950 mb-2">
@@ -151,7 +151,7 @@ export default function AuthPage() {
               <label className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase font-bold pl-1">
                 Email Address
               </label>
-              <div className="relative flex items-center bg-white border border-zinc-200/80 rounded-xl focus-within:border-[#269755]/50 focus-within:ring-4 focus-within:ring-[#269755]/10 transition-all shadow-sm">
+              <div className="relative flex items-center bg-white border border-zinc-200/80 rounded-xl focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10 transition-all shadow-sm">
                 <div className="pl-4 pr-2">
                   <Mail className="w-4 h-4 text-zinc-400" />
                 </div>
@@ -170,7 +170,7 @@ export default function AuthPage() {
               <label className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase font-bold pl-1">
                 Password
               </label>
-              <div className="relative flex items-center bg-white border border-zinc-200/80 rounded-xl focus-within:border-[#269755]/50 focus-within:ring-4 focus-within:ring-[#269755]/10 transition-all shadow-sm">
+              <div className="relative flex items-center bg-white border border-zinc-200/80 rounded-xl focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/10 transition-all shadow-sm">
                 <div className="pl-4 pr-2">
                   <Key className="w-4 h-4 text-zinc-400" />
                 </div>
@@ -191,7 +191,7 @@ export default function AuthPage() {
               transition={fastSpring}
               type="submit"
               disabled={loading}
-              className="w-full bg-zinc-950 text-white h-12 flex items-center justify-center gap-2 hover:bg-zinc-800 transition-colors disabled:opacity-50 text-sm font-bold tracking-wide rounded-xl shadow-[0_4px_14px_rgba(0,0,0,0.1)] mt-2"
+              className="w-full bg-primary text-primary-foreground h-12 flex items-center justify-center gap-2 hover:bg-primary/90 transition-all duration-150 ease-out active:scale-97 disabled:opacity-50 text-sm font-bold tracking-wide rounded-xl shadow-[0_4px_14px_rgba(0,0,0,0.1)] mt-2"
             >
               {loading ? (
                 <>

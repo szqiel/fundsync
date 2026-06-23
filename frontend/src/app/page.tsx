@@ -293,7 +293,7 @@ export default function Home() {
           </Link>
           <Link href="/auth">
             <MagneticButton 
-              className="bg-zinc-950 text-white px-5 py-2.5 rounded-full transition-all duration-150 ease-out active:scale-97 text-[11px] font-mono font-semibold tracking-widest flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-zinc-800"
+              className="bg-primary text-primary-foreground px-5 py-2.5 rounded-full transition-all duration-150 ease-out active:scale-97 text-[11px] font-mono font-semibold tracking-widest flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-primary/90"
             >
               WORKSPACE <ArrowRight className="w-3.5 h-3.5" />
             </MagneticButton>
@@ -322,7 +322,7 @@ export default function Home() {
                   className="text-5xl sm:text-6xl lg:text-[5.5rem] font-bold tracking-tighter mb-6 text-zinc-950 leading-[0.95]" 
                 >
                   Sync your pitch <br/>
-                  <span className="text-zinc-400">in seconds.</span>
+                  <span>in seconds.</span>
                 </motion.h1>
                 
                 <motion.p 
@@ -361,7 +361,7 @@ export default function Home() {
                           file ? "border-[#269755]/30 bg-[#CFEE91]/40" : "border-border bg-muted/40 group-hover:border-border/80"
                         }`}
                       >
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 ${file ? 'bg-[#CFEE91] text-[#269755]' : 'bg-card shadow-sm text-zinc-400'}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 ${file ? 'bg-primary text-primary-foreground' : 'bg-card shadow-sm text-zinc-400'}`}>
                           {file ? <Check className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
                         </div>
                         <span className="text-xs font-mono font-medium text-zinc-600 truncate max-w-[80%]">
@@ -373,7 +373,7 @@ export default function Home() {
                     {/* URL Input */}
                     <div className="space-y-3">
                       <label htmlFor="sponsor-website" className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase font-bold px-1">SPONSOR WEBSITE</label>
-                      <div className="relative flex items-center focus-within:ring-2 focus-within:ring-[#269755]/20 rounded-xl overflow-hidden transition-all shadow-sm border border-border bg-card">
+                      <div className="relative flex items-center focus-within:ring-2 focus-within:ring-secondary/20 rounded-xl overflow-hidden transition-all shadow-sm border border-border bg-card">
                         <div className="pl-4 pr-2">
                           <Link2 className="w-4 h-4 text-zinc-400" />
                         </div>
@@ -426,7 +426,7 @@ export default function Home() {
                               <input
                                 type="range" min="0" max="100" value={toneFormal}
                                 onChange={(e) => setToneFormal(parseInt(e.target.value, 10))}
-                                className="w-full h-1 bg-zinc-200 rounded-full appearance-none cursor-pointer accent-zinc-900"
+                                className="w-full h-1 bg-zinc-200 rounded-full appearance-none cursor-pointer accent-primary"
                               />
                             </div>
                             <div className="space-y-2">
@@ -440,7 +440,7 @@ export default function Home() {
                               <input
                                 type="range" min="0" max="100" value={toneTechnical}
                                 onChange={(e) => setToneTechnical(parseInt(e.target.value, 10))}
-                                className="w-full h-1 bg-zinc-200 rounded-full appearance-none cursor-pointer accent-zinc-900"
+                                className="w-full h-1 bg-zinc-200 rounded-full appearance-none cursor-pointer accent-primary"
                               />
                             </div>
                             <div className="space-y-2 pt-1">
@@ -461,7 +461,7 @@ export default function Home() {
                     <MagneticButton 
                       type="submit"
                       disabled={!file || !url}
-                      className="w-full bg-zinc-950 text-white h-14 rounded-xl flex items-center justify-center gap-2 hover:bg-zinc-800 transition-all duration-150 ease-out active:scale-97 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
+                      className="w-full bg-primary text-primary-foreground h-14 rounded-xl flex items-center justify-center gap-2 hover:bg-primary/90 transition-all duration-150 ease-out active:scale-97 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
                     >
                       <span className="text-sm font-semibold tracking-wide">Personalize Pitch</span>
                       <Sparkles className="w-4 h-4" />
@@ -511,7 +511,7 @@ export default function Home() {
                       }`}
                     >
                       <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-colors duration-700 ${
-                        isActive ? "bg-zinc-900 text-white" : isCurrent ? "border border-zinc-300 text-zinc-500" : "border border-zinc-200 text-zinc-300"
+                        isActive ? "bg-primary text-primary-foreground" : isCurrent ? "border border-zinc-300 text-zinc-500" : "border border-zinc-200 text-zinc-300"
                       }`}>
                         {isActive ? <Check className="w-3 h-3" /> : <div className={`w-1.5 h-1.5 rounded-full ${isCurrent ? 'bg-zinc-400 animate-ping' : 'bg-zinc-300'}`} />}
                       </div>
@@ -558,10 +558,10 @@ export default function Home() {
           {/* STATE: SUCCESS */}
           {appState === "success" && (
             <motion.div key="success" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="w-full max-w-2xl bg-white border border-zinc-200/60 rounded-[2.5rem] p-12 lg:p-16 flex flex-col items-center shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] text-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-[#CFEE91]/20 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-b from-primary/20 to-transparent pointer-events-none" />
               
-              <motion.div variants={fadeInUp} className="w-16 h-16 bg-[#CFEE91] rounded-2xl flex items-center justify-center mb-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] relative z-10">
-                <Check className="w-7 h-7 text-[#269755]" strokeWidth={2.5} />
+              <motion.div variants={fadeInUp} className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mb-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] relative z-10">
+                <Check className="w-7 h-7 text-secondary" strokeWidth={2.5} />
               </motion.div>
               
               <motion.h1 variants={fadeInUp} className="text-3xl lg:text-4xl font-bold tracking-tight mb-4 text-zinc-900 relative z-10">
@@ -586,7 +586,7 @@ export default function Home() {
               <motion.a 
                 variants={fadeInUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={fastSpring}
                 href={downloadUrl || "#"} download={`FundSync_Personalized_Pitch.pptx`}
-                className="w-full bg-zinc-950 text-white h-14 flex items-center justify-center gap-3 hover:bg-zinc-800 transition-all duration-150 ease-out mb-6 rounded-xl font-semibold shadow-[0_4px_14px_rgba(0,0,0,0.1)] relative z-10"
+                className="w-full bg-primary text-primary-foreground h-14 flex items-center justify-center gap-3 hover:bg-primary/90 transition-all duration-150 ease-out mb-6 rounded-xl font-semibold shadow-[0_4px_14px_rgba(0,0,0,0.1)] relative z-10"
               >
                 <Download className="w-4 h-4" strokeWidth={2} />
                 <span>Download .pptx</span>
