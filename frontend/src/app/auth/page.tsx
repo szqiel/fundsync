@@ -191,7 +191,7 @@ export default function AuthPage() {
               transition={fastSpring}
               type="submit"
               disabled={loading}
-              className="w-full bg-primary text-primary-foreground h-12 flex items-center justify-center gap-2 hover:bg-primary/90 transition-all duration-150 ease-out active:scale-97 disabled:opacity-50 text-sm font-bold tracking-wide rounded-xl shadow-[0_4px_14px_rgba(0,0,0,0.1)] mt-2"
+              className="w-full bg-primary text-primary-foreground h-12 flex items-center justify-center gap-2 hover:bg-primary/90 transition-[transform,shadow,background-color] duration-150 ease-out active:scale-97 disabled:opacity-50 text-sm font-bold tracking-wide rounded-xl shadow-[0_4px_14px_rgba(0,0,0,0.1)] mt-2"
             >
               {loading ? (
                 <>

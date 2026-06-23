@@ -43,14 +43,14 @@ const staggerContainer: Variants = {
 };
 
 const fadeInUp: Variants = {
-  hidden: { opacity: 0, y: 20, filter: "blur(4px)" },
+  hidden: { opacity: 0, transform: "translateY(20px)", filter: "blur(4px)" },
   visible: { 
     opacity: 1, 
-    y: 0, 
+    transform: "translateY(0px)",
     filter: "blur(0px)",
     transition: springTransition
   },
-  exit: { opacity: 0, y: -10, filter: "blur(4px)", transition: { duration: 0.2 } }
+  exit: { opacity: 0, transform: "translateY(-10px)", filter: "blur(4px)", transition: { duration: 0.2 } }
 };
 
 export default function Home() {
@@ -293,7 +293,7 @@ export default function Home() {
           </Link>
           <Link href="/auth">
             <MagneticButton 
-              className="bg-primary text-primary-foreground px-5 py-2.5 rounded-full transition-all duration-150 ease-out active:scale-97 text-[11px] font-mono font-semibold tracking-widest flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-primary/90"
+              className="bg-primary text-primary-foreground px-5 py-2.5 rounded-full transition-[transform,shadow,background-color] duration-150 ease-out active:scale-97 text-[11px] font-mono font-semibold tracking-widest flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-primary/90"
             >
               WORKSPACE <ArrowRight className="w-3.5 h-3.5" />
             </MagneticButton>
@@ -461,7 +461,7 @@ export default function Home() {
                     <MagneticButton 
                       type="submit"
                       disabled={!file || !url}
-                      className="w-full bg-primary text-primary-foreground h-14 rounded-xl flex items-center justify-center gap-2 hover:bg-primary/90 transition-all duration-150 ease-out active:scale-97 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
+                      className="w-full bg-primary text-primary-foreground h-14 rounded-xl flex items-center justify-center gap-2 hover:bg-primary/90 transition-[transform,background-color,opacity,shadow] duration-150 ease-out active:scale-97 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
                     >
                       <span className="text-sm font-semibold tracking-wide">Personalize Pitch</span>
                       <Sparkles className="w-4 h-4" />
@@ -505,7 +505,7 @@ export default function Home() {
                   return (
                     <motion.div 
                       key={item.step} variants={fadeInUp} 
-                      className={`flex items-start gap-4 p-5 rounded-2xl border transition-all duration-700 ${
+                      className={`flex items-start gap-4 p-5 rounded-2xl border transition-[background-color,border-color,opacity] duration-700 ${
                         isActive ? "bg-white border-zinc-200 shadow-sm" : 
                         isCurrent ? "bg-zinc-50 border-zinc-200" : "bg-transparent border-transparent opacity-40"
                       }`}
@@ -535,7 +535,7 @@ export default function Home() {
 
           {/* STATE: ALCHEMY CHAMBER */}
           {appState === "alchemy" && (
-            <motion.div key="alchemy" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} transition={springTransition} className="w-full max-w-[1200px]">
+            <motion.div key="alchemy" initial={{ opacity: 0, transform: "translateY(20px)" }} animate={{ opacity: 1, transform: "translateY(0px)" }} exit={{ opacity: 0, scale: 0.98 }} transition={springTransition} className="w-full max-w-[1200px]">
               <AlchemyChamber proposedReplacements={proposedReplacements} scrapedContext={scrapedContext} onCancel={resetState} onCompile={handleCompileDeck} />
             </motion.div>
           )}
@@ -586,7 +586,7 @@ export default function Home() {
               <motion.a 
                 variants={fadeInUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={fastSpring}
                 href={downloadUrl || "#"} download={`FundSync_Personalized_Pitch.pptx`}
-                className="w-full bg-primary text-primary-foreground h-14 flex items-center justify-center gap-3 hover:bg-primary/90 transition-all duration-150 ease-out mb-6 rounded-xl font-semibold shadow-[0_4px_14px_rgba(0,0,0,0.1)] relative z-10"
+                className="w-full bg-primary text-primary-foreground h-14 flex items-center justify-center gap-3 hover:bg-primary/90 transition-[transform,shadow,background-color] duration-150 ease-out mb-6 rounded-xl font-semibold shadow-[0_4px_14px_rgba(0,0,0,0.1)] relative z-10"
               >
                 <Download className="w-4 h-4" strokeWidth={2} />
                 <span>Download .pptx</span>

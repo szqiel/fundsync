@@ -647,7 +647,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                   <button
                     key={item.id}
                     onClick={() => { setActiveTab(item.id as any); resetProcessingState(); }}
-                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all duration-150 ease-out active:scale-97 min-h-[44px] ${
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-[transform,colors,shadow] duration-150 ease-out active:scale-97 min-h-[44px] ${
                       activeTab === item.id
                         ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
@@ -815,8 +815,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                         </div>
 
                         <MagneticButton
-                          type="submit" disabled={(!selectedDeckId && !customFile) || !targetUrl}
-                          className="w-full bg-primary text-primary-foreground h-14 rounded-xl flex items-center justify-center gap-2 mt-auto hover:bg-primary/90 transition-all duration-150 ease-out active:scale-97 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
+                          type="submit" disabled={!selectedDeckId || !targetUrl || isProcessing}
+                          className="w-full bg-primary text-primary-foreground h-14 rounded-xl flex items-center justify-center gap-2 mt-auto hover:bg-primary/90 transition-[transform,colors,opacity,filter] duration-150 ease-out active:scale-97 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
                         >
                           <span className="text-sm font-bold tracking-wide">Personalize Pitch</span>
                           <Sparkles className="w-4 h-4" />
@@ -846,8 +846,8 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                           const isActive = logStage >= item.step;
                           const isCurrent = logStage === item.step - 1;
                           return (
-                            <motion.div key={item.step} variants={fadeInUp} className={`flex items-start gap-4 p-5 rounded-2xl border transition-all duration-700 ${isActive ? "bg-white border-zinc-200 shadow-sm" : isCurrent ? "bg-zinc-50 border-zinc-200" : "bg-transparent border-transparent opacity-40"}`}>
-                              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-colors duration-700 ${isActive ? "bg-primary text-primary-foreground" : isCurrent ? "border border-zinc-300 text-zinc-500" : "border border-zinc-200 text-zinc-300"}`}>
+                            <motion.div key={item.step} variants={fadeInUp} className={`flex items-start gap-4 p-5 rounded-2xl border transition-[background-color,border-color,opacity] duration-700 ${isActive ? "bg-white border-zinc-200 shadow-sm" : isCurrent ? "bg-zinc-50 border-zinc-200" : "bg-transparent border-transparent opacity-40"}`}>
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 transition-[background-color,border-color,color] duration-700 ${isActive ? "bg-primary text-primary-foreground" : isCurrent ? "border border-zinc-300 text-zinc-500" : "border border-zinc-200 text-zinc-300"}`}>
                                 {isActive ? <Check className="w-3 h-3" /> : <div className={`w-1.5 h-1.5 rounded-full ${isCurrent ? 'bg-zinc-400 animate-ping' : 'bg-zinc-300'}`} />}
                               </div>
                               <div>
@@ -865,7 +865,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                   )}
 
                   {processingState === "alchemy" && (
-                    <motion.div key="alchemy" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }} className="w-full py-10">
+                    <motion.div key="alchemy" initial={{ opacity: 0, transform: "translateY(20px)" }} animate={{ opacity: 1, transform: "translateY(0px)" }} exit={{ opacity: 0, scale: 0.98, filter: "blur(4px)" }} className="w-full py-10">
                       <AlchemyChamber proposedReplacements={proposedReplacements} scrapedContext={scrapedContext} onCancel={resetProcessingState} onCompile={handleCompileDeck} />
                     </motion.div>
                   )}
@@ -931,7 +931,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
               {decks.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {decks.map((deck) => (
-                    <motion.div variants={fadeInUp} key={deck.id} className="bg-card/70 backdrop-blur-xl border border-border rounded-[2rem] shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 flex flex-col group overflow-hidden relative">
+                    <motion.div variants={fadeInUp} key={deck.id} className="bg-card/70 backdrop-blur-xl border border-border rounded-[2rem] shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] transition-[shadow,background-color] duration-500 flex flex-col group overflow-hidden relative">
                       <div className="w-full aspect-video bg-muted flex items-center justify-center relative overflow-hidden">
                         {deck.thumbnail_url ? (
                           <img src={deck.thumbnail_url} alt={deck.name} className="w-full h-full object-cover transition-transform duration-700 lg:group-hover:scale-105" />
@@ -939,7 +939,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                           <div className="flex flex-col items-center text-muted-foreground"><FileText className="w-8 h-8 mb-2" strokeWidth={1.5} /><span className="text-[10px] font-mono tracking-widest uppercase">No Preview</span></div>
                         )}
                         <div className="absolute inset-0 bg-zinc-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-sm">
-                          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} onClick={() => { setSelectedDeckId(deck.id); setCustomFile(null); setActiveTab("studio"); }} className="bg-card text-foreground px-6 py-3 rounded-full text-xs font-bold shadow-xl flex items-center gap-2 active:scale-97 duration-150 ease-out">
+                          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} onClick={() => { setSelectedDeckId(deck.id); setCustomFile(null); setActiveTab("studio"); }} className="bg-card text-foreground px-6 py-3 rounded-full text-xs font-bold shadow-xl flex items-center gap-2 transition-transform duration-150 ease-out active:scale-97">
                             <Sparkles className="w-4 h-4 text-secondary" /> Start Sync
                           </motion.button>
                         </div>
@@ -948,7 +948,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                         <h3 className="text-lg text-foreground truncate mb-1">{deck.name}</h3>
                         <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">{new Date(deck.created_at).toLocaleDateString()} • {deck.size || 'Unknown'}</p>
                       </div>
-                      <button onClick={() => handleDeleteDeck(deck.id, deck.storage_path, deck.name)} aria-label="Delete template from library" className="absolute top-4 right-4 bg-card/90 backdrop-blur-md text-muted-foreground hover:text-red-500 p-2.5 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all border border-border translate-y-[-10px] group-hover:translate-y-0 min-h-[44px] min-w-[44px] flex items-center justify-center">
+                      <button onClick={() => handleDeleteDeck(deck.id, deck.storage_path, deck.name)} aria-label="Delete template from library" className="absolute top-4 right-4 bg-card/90 backdrop-blur-md text-muted-foreground hover:text-red-500 p-2.5 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-[opacity,transform,color] border border-border translate-y-[-10px] group-hover:translate-y-0 min-h-[44px] min-w-[44px] flex items-center justify-center">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </motion.div>
@@ -963,7 +963,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                   <p className="text-sm text-muted-foreground max-w-sm mb-8">Upload your first `.pptx` template. It will be safely saved in Cloud Storage for future synchronizations.</p>
                   <div className="relative group">
                     <input type="file" accept=".pptx" onChange={handleUploadDeck} disabled={isUploadingDeck} aria-label="Upload PowerPoint Master Presentation" className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed z-10" />
-                    <button disabled={isUploadingDeck} className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all duration-150 ease-out active:scale-97 shadow-sm disabled:opacity-50">
+                    <button disabled={isUploadingDeck} className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 transition-[transform,background-color] duration-150 ease-out active:scale-97 shadow-sm disabled:opacity-50">
                       {isUploadingDeck ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                       Upload Presentation
                     </button>
@@ -1009,17 +1009,17 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                             </div>
                             <div>
                               <h3 className="text-xl font-bold text-foreground">{sponsor.name}</h3>
-                              <a href={sponsor.website_url} target="_blank" rel="noreferrer" className="text-xs text-zinc-400 hover:text-secondary font-mono flex items-center gap-1.5 mt-1 transition-colors">
+                              <a href={sponsor.website_url} target="_blank" rel="noreferrer" className="text-xs text-zinc-400 hover:text-secondary font-mono flex items-center gap-1.5 mt-1 transition-[color] duration-200">
                                 <Globe className="w-3 h-3" /> {sponsor.website_url}
                               </a>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-3">
-                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => { setTargetUrl(sponsor.website_url); setActiveTab("studio"); }} className="bg-primary text-primary-foreground px-5 py-2.5 rounded-full text-[11px] font-mono font-bold tracking-widest transition-all duration-150 ease-out active:scale-97 shadow-md">
-                              SYNC PITCH
+                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => { setTargetUrl(sponsor.website_url); setActiveTab("studio"); }} className="bg-primary text-primary-foreground px-5 py-2.5 rounded-full text-[11px] font-mono font-bold tracking-widest transition-[transform,colors,shadow] duration-150 ease-out active:scale-97 shadow-md">
+                              CREATE PITCH
                             </motion.button>
-                            <button onClick={() => setExpandedSponsorId(isExpanded ? null : sponsor.id)} aria-label="Expand sponsor research details" className="w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors min-h-[44px] min-w-[44px]">
+                            <button onClick={() => setExpandedSponsorId(isExpanded ? null : sponsor.id)} aria-label="Expand sponsor research details" className="w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-muted transition-[background-color] min-h-[44px] min-w-[44px]">
                               <motion.div animate={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }} transition={fastSpring}><ChevronDown className="w-4 h-4" /></motion.div>
                             </button>
                           </div>
