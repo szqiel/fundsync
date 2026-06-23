@@ -293,7 +293,7 @@ export default function Home() {
           </Link>
           <Link href="/auth">
             <MagneticButton 
-              className="bg-zinc-900 text-white px-5 py-2.5 rounded-full transition-all text-[11px] font-mono font-semibold tracking-widest flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-zinc-800"
+              className="bg-zinc-950 text-white px-5 py-2.5 rounded-full transition-all duration-150 ease-out active:scale-97 text-[11px] font-mono font-semibold tracking-widest flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-zinc-800"
             >
               WORKSPACE <ArrowRight className="w-3.5 h-3.5" />
             </MagneticButton>
@@ -327,7 +327,7 @@ export default function Home() {
                 
                 <motion.p 
                   variants={fadeInUp}
-                  className="text-zinc-500 text-lg sm:text-xl max-w-[500px] leading-relaxed font-light"
+                  className="text-zinc-500 text-lg sm:text-xl max-w-[65ch] leading-relaxed font-light"
                 >
                   Transform standard pitch decks into personalized presentations for any sponsor in seconds.
                 </motion.p>
@@ -341,25 +341,27 @@ export default function Home() {
                   {/* Subtle inner gradient */}
                   <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-white/40 to-transparent pointer-events-none" />
 
-                  <form onSubmit={handleProposeReplacements} className="bg-white/80 rounded-[1.75rem] border border-zinc-100 p-8 relative flex flex-col space-y-8">
+                  <form onSubmit={handleProposeReplacements} className="bg-card/85 rounded-[1.75rem] border border-border p-8 relative flex flex-col space-y-8">
                     
                     {/* Drag & Drop Zone */}
                     <div className="relative group">
                       <input 
                         type="file" 
+                        id="guest-deck-upload"
                         accept=".pptx"
                         required
                         onChange={(e) => setFile(e.target.files?.[0] || null)}
+                        aria-label="Upload PowerPoint Master Presentation"
                         className="peer absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       />
                       <motion.div 
-                        whileHover={{ transform: "scale(0.99)", backgroundColor: "#f4f4f5" }}
+                        whileHover={{ transform: "scale(0.99)", backgroundColor: "var(--muted)" }}
                         transition={fastSpring}
                         className={`w-full h-32 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 ${
-                          file ? "border-[#269755]/30 bg-[#CFEE91]/40/50" : "border-zinc-200 bg-zinc-50/50 group-hover:border-zinc-300"
+                          file ? "border-[#269755]/30 bg-[#CFEE91]/40" : "border-border bg-muted/40 group-hover:border-border/80"
                         }`}
                       >
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 ${file ? 'bg-[#CFEE91] text-[#269755]' : 'bg-white shadow-sm text-zinc-400'}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 ${file ? 'bg-[#CFEE91] text-[#269755]' : 'bg-card shadow-sm text-zinc-400'}`}>
                           {file ? <Check className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
                         </div>
                         <span className="text-xs font-mono font-medium text-zinc-600 truncate max-w-[80%]">
@@ -370,18 +372,19 @@ export default function Home() {
 
                     {/* URL Input */}
                     <div className="space-y-3">
-                      <label className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase font-bold px-1">SPONSOR WEBSITE</label>
-                      <div className="relative flex items-center focus-within:ring-2 focus-within:ring-[#269755]/20 rounded-xl overflow-hidden transition-all shadow-sm border border-zinc-200 bg-white">
+                      <label htmlFor="sponsor-website" className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase font-bold px-1">SPONSOR WEBSITE</label>
+                      <div className="relative flex items-center focus-within:ring-2 focus-within:ring-[#269755]/20 rounded-xl overflow-hidden transition-all shadow-sm border border-border bg-card">
                         <div className="pl-4 pr-2">
                           <Link2 className="w-4 h-4 text-zinc-400" />
                         </div>
                         <input
                           type="url"
+                          id="sponsor-website"
                           placeholder="https://sponsor-website.com"
                           value={url}
                           onChange={(e) => setUrl(e.target.value)}
                           required
-                          className="w-full h-12 outline-none bg-transparent placeholder-zinc-300 text-sm font-medium text-zinc-900"
+                          className="w-full h-12 outline-none bg-transparent placeholder-zinc-300 text-sm font-medium text-foreground"
                         />
                       </div>
                     </div>
@@ -458,7 +461,7 @@ export default function Home() {
                     <MagneticButton 
                       type="submit"
                       disabled={!file || !url}
-                      className="w-full bg-zinc-950 text-white h-14 rounded-xl flex items-center justify-center gap-2 hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
+                      className="w-full bg-zinc-950 text-white h-14 rounded-xl flex items-center justify-center gap-2 hover:bg-zinc-800 transition-all duration-150 ease-out active:scale-97 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
                     >
                       <span className="text-sm font-semibold tracking-wide">Personalize Pitch</span>
                       <Sparkles className="w-4 h-4" />
@@ -555,7 +558,7 @@ export default function Home() {
           {/* STATE: SUCCESS */}
           {appState === "success" && (
             <motion.div key="success" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="w-full max-w-2xl bg-white border border-zinc-200/60 rounded-[2.5rem] p-12 lg:p-16 flex flex-col items-center shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] text-center relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-b from-[#CFEE91]/40/30 to-transparent pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-b from-[#CFEE91]/20 to-transparent pointer-events-none" />
               
               <motion.div variants={fadeInUp} className="w-16 h-16 bg-[#CFEE91] rounded-2xl flex items-center justify-center mb-8 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] relative z-10">
                 <Check className="w-7 h-7 text-[#269755]" strokeWidth={2.5} />
@@ -583,7 +586,7 @@ export default function Home() {
               <motion.a 
                 variants={fadeInUp} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} transition={fastSpring}
                 href={downloadUrl || "#"} download={`FundSync_Personalized_Pitch.pptx`}
-                className="w-full bg-zinc-950 text-white h-14 flex items-center justify-center gap-3 hover:bg-zinc-800 transition-colors mb-6 rounded-xl font-semibold shadow-[0_4px_14px_rgba(0,0,0,0.1)] relative z-10"
+                className="w-full bg-zinc-950 text-white h-14 flex items-center justify-center gap-3 hover:bg-zinc-800 transition-all duration-150 ease-out mb-6 rounded-xl font-semibold shadow-[0_4px_14px_rgba(0,0,0,0.1)] relative z-10"
               >
                 <Download className="w-4 h-4" strokeWidth={2} />
                 <span>Download .pptx</span>

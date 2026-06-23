@@ -98,7 +98,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#F3EFE7] flex flex-col font-sans text-zinc-900 selection:bg-emerald-200 selection:text-emerald-950 relative overflow-hidden">
+    <div className="min-h-[100dvh] bg-background flex flex-col font-sans text-zinc-900 selection:bg-emerald-200 selection:text-emerald-950 relative overflow-hidden">
       
       {/* Abstract Background Noise / Blur */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">

@@ -34,7 +34,7 @@ const itemVariants: Variants = {
 
 export default function About() {
   return (
-    <div className="min-h-[100dvh] bg-[#F3EFE7] flex flex-col font-sans text-zinc-900 selection:bg-emerald-200 selection:text-emerald-950 relative overflow-hidden">
+    <div className="min-h-[100dvh] bg-background flex flex-col font-sans text-zinc-900 selection:bg-emerald-200 selection:text-emerald-950 relative overflow-hidden">
       <AmbientBackground />
 
       {/* Top Navbar */}
@@ -52,7 +52,7 @@ export default function About() {
           </Link>
           <Link href="/auth">
             <MagneticButton 
-              className="bg-zinc-900 text-white px-5 py-2.5 rounded-full transition-all text-[11px] font-mono font-semibold tracking-widest flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-zinc-800"
+              className="bg-zinc-950 text-white px-5 py-2.5 rounded-full transition-all duration-150 ease-out active:scale-97 text-[11px] font-mono font-semibold tracking-widest flex items-center gap-2 shadow-[0_4px_12px_rgba(0,0,0,0.1)] hover:bg-zinc-800"
             >
               WORKSPACE <ArrowRight className="w-3.5 h-3.5" />
             </MagneticButton>
@@ -69,7 +69,7 @@ export default function About() {
           className="w-full flex flex-col items-center"
         >
           {/* Hero Section */}
-          <motion.div variants={itemVariants} className="text-center mb-20 max-w-3xl">
+          <motion.div variants={itemVariants} className="text-center mb-20 max-w-[65ch] mx-auto">
             <h1 className="text-5xl md:text-6xl lg:text-[4.5rem] font-bold tracking-tighter mb-8 text-zinc-950 leading-[0.95]">
               The Mission
             </h1>
@@ -80,11 +80,10 @@ export default function About() {
 
           {/* Bento Grid */}
           <motion.div 
-            variants={itemVariants} 
             className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 mb-24"
           >
             {/* Card 1: SCRAPE */}
-            <div className="bg-white/60 backdrop-blur-2xl border border-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_24px_48px_-12px_rgba(0,0,0,0.05)] rounded-[2rem] p-8 flex flex-col relative group overflow-hidden">
+            <motion.div variants={itemVariants} className="bg-white/60 backdrop-blur-2xl border border-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_24px_48px_-12px_rgba(0,0,0,0.05)] rounded-[2rem] p-8 flex flex-col relative group overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-[#CFEE91]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
               <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-8 text-zinc-900 shadow-sm border border-zinc-100 relative z-10">
                 <Search className="w-6 h-6" strokeWidth={1.5} />
@@ -98,10 +97,10 @@ export default function About() {
               <p className="text-zinc-500 text-sm leading-relaxed font-light relative z-10">
                 We scan your target sponsor's website to learn about their goals, recent charity work, and what matters most to their brand.
               </p>
-            </div>
+            </motion.div>
 
             {/* Card 2: MAP */}
-            <div className="bg-white/60 backdrop-blur-2xl border border-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_24px_48px_-12px_rgba(0,0,0,0.05)] rounded-[2rem] p-8 flex flex-col relative group overflow-hidden md:-translate-y-4">
+            <motion.div variants={itemVariants} className="bg-white/60 backdrop-blur-2xl border border-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_24px_48px_-12px_rgba(0,0,0,0.05)] rounded-[2rem] p-8 flex flex-col relative group overflow-hidden md:-translate-y-4">
               <div className="absolute inset-0 bg-gradient-to-br from-[#CFEE91]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
               <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-8 text-zinc-900 shadow-sm border border-zinc-100 relative z-10">
                 <Compass className="w-6 h-6" strokeWidth={1.5} />
@@ -115,10 +114,10 @@ export default function About() {
               <p className="text-zinc-500 text-sm leading-relaxed font-light relative z-10">
                 Our AI looks at your presentation and matches it with the sponsor's goals, finding the best way to show why you are a perfect fit.
               </p>
-            </div>
+            </motion.div>
 
             {/* Card 3: SYNC */}
-            <div className="bg-white/60 backdrop-blur-2xl border border-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_24px_48px_-12px_rgba(0,0,0,0.05)] rounded-[2rem] p-8 flex flex-col relative group overflow-hidden">
+            <motion.div variants={itemVariants} className="bg-white/60 backdrop-blur-2xl border border-white/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_24px_48px_-12px_rgba(0,0,0,0.05)] rounded-[2rem] p-8 flex flex-col relative group overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-[#CFEE91]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
               <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-8 text-zinc-900 shadow-sm border border-zinc-100 relative z-10">
                 <RefreshCcw className="w-6 h-6" strokeWidth={1.5} />
@@ -132,7 +131,7 @@ export default function About() {
               <p className="text-zinc-500 text-sm leading-relaxed font-light relative z-10">
                 FundSync updates your presentation file automatically, adding the personalized text and statistics right into your slides while keeping your design intact.
               </p>
-            </div>
+            </motion.div>
           </motion.div>
 
           {/* CTA Section */}
@@ -144,7 +143,7 @@ export default function About() {
               Ready to scale your outreach?
             </h2>
             <Link href="/auth">
-              <MagneticButton className="bg-zinc-900 text-white px-8 py-4 rounded-full font-mono text-xs font-semibold tracking-widest uppercase transition-colors flex items-center gap-2 shadow-[0_8px_24px_rgba(0,0,0,0.15)] hover:bg-zinc-800">
+              <MagneticButton className="bg-zinc-950 text-white px-8 py-4 rounded-full font-mono text-xs font-semibold tracking-widest uppercase transition-all duration-150 ease-out active:scale-97 flex items-center gap-2 shadow-[0_8px_24px_rgba(0,0,0,0.15)] hover:bg-zinc-800">
                 Get Started Now <ArrowUpRight className="w-4 h-4" />
               </MagneticButton>
             </Link>

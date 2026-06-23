@@ -631,10 +631,10 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
       {/* Floating Glass Sidebar */}
       <aside className="w-full md:w-[280px] shrink-0 p-4 md:p-6 md:pr-0 relative z-20">
-        <div className="w-full h-full bg-white/70 backdrop-blur-2xl border border-zinc-200/60 shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_20px_40px_-15px_rgba(0,0,0,0.05)] rounded-[2rem] p-6 flex flex-col justify-between">
+        <div className="w-full h-full bg-card/70 backdrop-blur-2xl border border-border shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_20px_40px_-15px_rgba(0,0,0,0.05)] rounded-[2rem] p-6 flex flex-col justify-between">
           <div className="space-y-8">
             <div>
-              <div className="text-[10px] font-mono tracking-[0.2em] text-zinc-400 uppercase mb-5 ml-1">
+              <div className="text-[10px] font-mono tracking-[0.2em] text-muted-foreground uppercase mb-5 ml-1">
                 Workspace
               </div>
               <nav className="space-y-1.5">
@@ -647,17 +647,17 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                   <button
                     key={item.id}
                     onClick={() => { setActiveTab(item.id as any); resetProcessingState(); }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-semibold transition-all duration-150 ease-out active:scale-97 min-h-[44px] ${
                       activeTab === item.id
-                        ? "bg-zinc-950 text-white shadow-md shadow-zinc-950/10"
-                        : "text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100/50"
+                        ? "bg-foreground text-background shadow-md shadow-foreground/10"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     }`}
                   >
                     <item.icon className="w-4 h-4" />
                     {item.label}
                     {item.count !== undefined && (
                       <span className={`ml-auto text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
-                        activeTab === item.id ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-400"
+                        activeTab === item.id ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
                       }`}>
                         {item.count}
                       </span>
@@ -670,20 +670,20 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
           <div className="pt-6 mt-8">
             {isMockMode && (
-              <div className="mb-4 bg-orange-50 border border-orange-100 rounded-xl p-3 text-[10px] text-orange-800 leading-relaxed font-mono flex items-start gap-2 shadow-sm">
+              <div className="mb-4 bg-orange-500/10 border border-orange-500/20 rounded-xl p-3 text-[10px] text-orange-600 dark:text-orange-400 leading-relaxed font-mono flex items-start gap-2 shadow-sm">
                 <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                 <span>Demo Sandbox: Supabase env disconnected.</span>
               </div>
             )}
             <div className="flex flex-col gap-3">
-              <span className="truncate w-full font-mono text-[10px] text-zinc-400 tracking-wider bg-zinc-50 rounded-lg px-3 py-2 border border-zinc-100" title={user?.email}>
+              <span className="truncate w-full font-mono text-[10px] text-muted-foreground tracking-wider bg-muted rounded-lg px-3 py-2 border border-border" title={user?.email}>
                 {user?.email}
               </span>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={onLogout}
-                className="w-full flex items-center justify-center gap-2 border border-zinc-200 bg-white text-zinc-700 hover:text-zinc-950 hover:border-zinc-300 rounded-xl px-4 py-2.5 text-xs font-mono font-bold transition-all shadow-sm"
+                className="w-full flex items-center justify-center gap-2 border border-border bg-card text-muted-foreground hover:text-foreground hover:border-border/80 rounded-xl px-4 py-3 text-xs font-mono font-bold transition-all duration-150 ease-out active:scale-97 shadow-sm min-h-[44px]"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 LOG OUT
@@ -710,10 +710,10 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                   <form onSubmit={handleProposeReplacements} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     
                     {/* Left Column: Deck Selection (Bento Tile 1) */}
-                    <motion.div variants={fadeInUp} className="lg:col-span-7 bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex flex-col">
+                    <motion.div variants={fadeInUp} className="lg:col-span-7 bg-card/70 backdrop-blur-xl border border-border rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex flex-col">
                       <div className="flex items-center gap-3 mb-6">
                         <div className="w-8 h-8 rounded-full bg-[#CFEE91] flex items-center justify-center text-[#269755]"><LayoutGrid className="w-4 h-4"/></div>
-                        <h2 className="text-lg font-bold text-zinc-900">1. Your Presentation</h2>
+                        <h2 className="text-lg font-bold text-foreground">1. Your Presentation</h2>
                       </div>
 
                       {decks.length > 0 ? (
@@ -724,32 +724,32 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                               whileTap={{ scale: 0.97 }}
                               key={deck.id}
                               onClick={() => { setSelectedDeckId(deck.id); setCustomFile(null); }}
-                              className={`rounded-2xl p-4 flex items-start gap-3 cursor-pointer transition-all border-2 ${
+                              className={`rounded-2xl p-4 flex items-start gap-3 cursor-pointer transition-all border-2 min-h-[56px] ${
                                 selectedDeckId === deck.id && !customFile
-                                  ? "border-[#269755] bg-[#CFEE91]/40/50 shadow-sm"
-                                  : "border-zinc-100 bg-white hover:border-zinc-300"
+                                  ? "border-[#269755] bg-[#CFEE91]/40 shadow-sm"
+                                  : "border-border bg-card hover:border-border/80"
                               }`}
                             >
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${selectedDeckId === deck.id && !customFile ? "bg-[#269755] text-white" : "bg-zinc-100 text-zinc-400"}`}>
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${selectedDeckId === deck.id && !customFile ? "bg-[#269755] text-white" : "bg-muted text-muted-foreground"}`}>
                                 <FileText className="w-4 h-4" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h4 className="text-sm font-semibold text-zinc-900 truncate">{deck.name}</h4>
-                                <p className="text-[10px] text-zinc-400 mt-0.5 font-mono">{deck.size || "Unknown size"}</p>
+                                <h4 className="text-sm font-semibold text-foreground truncate">{deck.name}</h4>
+                                <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">{deck.size || "Unknown size"}</p>
                               </div>
                             </motion.div>
                           ))}
                         </div>
                       ) : (
-                        <div className="flex-1 rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/50 flex flex-col items-center justify-center p-6 text-center mb-6">
-                          <span className="text-xs font-mono text-zinc-500">No decks found in library.</span>
+                        <div className="flex-1 rounded-2xl border-2 border-dashed border-border bg-muted/30 flex flex-col items-center justify-center p-6 text-center mb-6">
+                          <span className="text-xs font-mono text-muted-foreground">No decks found in library.</span>
                         </div>
                       )}
 
-                      <div className="mt-auto pt-6 border-t border-zinc-100">
+                      <div className="mt-auto pt-6 border-t border-border">
                         <div className="relative group">
-                          <input type="file" accept=".pptx" onChange={(e) => { setCustomFile(e.target.files?.[0] || null); setSelectedDeckId(""); }} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                          <div className={`w-full rounded-xl border-2 border-dashed flex items-center justify-center p-4 transition-colors ${customFile ? "border-[#269755]/50 bg-[#CFEE91]/40 text-[#1d7240]" : "border-zinc-200 bg-white hover:border-zinc-300 text-zinc-500"}`}>
+                          <input type="file" id="studio-deck-upload" accept=".pptx" onChange={(e) => { setCustomFile(e.target.files?.[0] || null); setSelectedDeckId(""); }} aria-label="Upload custom PowerPoint presentation file" className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                          <div className={`w-full rounded-xl border-2 border-dashed flex items-center justify-center p-4 transition-colors ${customFile ? "border-[#269755]/50 bg-[#CFEE91]/40 text-[#1d7240]" : "border-border bg-card hover:border-border/80 text-muted-foreground"}`}>
                             <Upload className="w-4 h-4 mr-2" />
                             <span className="text-xs font-semibold">{customFile ? customFile.name : "Or upload one-off .pptx"}</span>
                           </div>
@@ -760,26 +760,31 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                     {/* Right Column: Config & Submit (Bento Tile 2 & 3) */}
                     <div className="lg:col-span-5 flex flex-col gap-6">
                       
-                      <motion.div variants={fadeInUp} className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+                      <motion.div variants={fadeInUp} className="bg-card/70 backdrop-blur-xl border border-border rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
                         <div className="flex items-center gap-3 mb-6">
                           <div className="w-8 h-8 rounded-full bg-[#CFEE91] flex items-center justify-center text-[#269755]"><Globe className="w-4 h-4"/></div>
-                          <h2 className="text-lg font-bold text-zinc-900">2. Sponsor Website</h2>
+                          <label htmlFor="studio-sponsor-url" className="text-lg font-bold text-foreground cursor-pointer">2. Sponsor Website</label>
                         </div>
                         
-                        <div className="relative flex items-center focus-within:ring-2 focus-within:ring-[#269755]/20 rounded-xl overflow-hidden shadow-sm border border-zinc-200 bg-white">
-                          <div className="pl-4 pr-2"><Link2 className="w-4 h-4 text-zinc-400" /></div>
+                        <div className="relative flex items-center focus-within:ring-2 focus-within:ring-[#269755]/20 rounded-xl overflow-hidden shadow-sm border border-border bg-card">
+                          <div className="pl-4 pr-2"><Link2 className="w-4 h-4 text-muted-foreground" /></div>
                           <input
-                            type="url" placeholder="https://sponsor-url.com" value={targetUrl} onChange={(e) => setTargetUrl(e.target.value)} required
-                            className="w-full h-12 outline-none bg-transparent placeholder-zinc-300 text-sm font-semibold text-zinc-900"
+                            type="url" 
+                            id="studio-sponsor-url"
+                            placeholder="https://sponsor-url.com" 
+                            value={targetUrl} 
+                            onChange={(e) => setTargetUrl(e.target.value)} 
+                            required
+                            className="w-full h-12 outline-none bg-transparent placeholder-zinc-300 text-sm font-semibold text-foreground"
                           />
                         </div>
                       </motion.div>
 
-                      <motion.div variants={fadeInUp} className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex-1 flex flex-col justify-between">
+                      <motion.div variants={fadeInUp} className="bg-card/70 backdrop-blur-xl border border-border rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] flex-1 flex flex-col justify-between">
                         <div className="mb-4">
-                          <button type="button" onClick={() => setIsTonePanelOpen(!isTonePanelOpen)} className="w-full flex items-center justify-between text-xs font-semibold text-zinc-600 focus:outline-none">
-                            <span className="flex items-center gap-2"><Sliders className="w-4 h-4 text-zinc-400" /> Personalization Settings</span>
-                            <motion.div animate={{ rotate: isTonePanelOpen ? 180 : 0 }} transition={fastSpring}><ChevronDown className="w-4 h-4 text-zinc-400" /></motion.div>
+                          <button type="button" onClick={() => setIsTonePanelOpen(!isTonePanelOpen)} className="w-full flex items-center justify-between text-xs font-semibold text-muted-foreground focus:outline-none min-h-[44px]">
+                            <span className="flex items-center gap-2"><Sliders className="w-4 h-4 text-muted-foreground" /> Personalization Settings</span>
+                            <motion.div animate={{ rotate: isTonePanelOpen ? 180 : 0 }} transition={fastSpring}><ChevronDown className="w-4 h-4 text-muted-foreground" /></motion.div>
                           </button>
 
                           <AnimatePresence>
@@ -787,22 +792,22 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                               <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                                 <div className="pt-6 space-y-5">
                                   <div className="space-y-2">
-                                    <div className="flex justify-between text-[10px] font-mono text-zinc-400 font-medium">
+                                    <div className="flex justify-between text-[10px] font-mono text-muted-foreground font-medium">
                                       <span>Narrative</span>
-                                      <span className="text-zinc-900 font-bold">{toneFormal < 35 ? "Creative" : toneFormal > 65 ? "Corporate" : "Balanced"}</span>
+                                      <span className="text-foreground font-bold">{toneFormal < 35 ? "Creative" : toneFormal > 65 ? "Corporate" : "Balanced"}</span>
                                       <span>Formal</span>
                                     </div>
-                                    <input type="range" min="0" max="100" value={toneFormal} onChange={(e) => setToneFormal(parseInt(e.target.value, 10))} className="w-full h-1 bg-zinc-200 rounded-full appearance-none cursor-pointer accent-zinc-900" />
+                                    <input type="range" aria-label="Tone Formal vs Creative" min="0" max="100" value={toneFormal} onChange={(e) => setToneFormal(parseInt(e.target.value, 10))} className="w-full h-1 bg-muted rounded-full appearance-none cursor-pointer accent-foreground" />
                                   </div>
                                   <div className="space-y-2">
-                                    <div className="flex justify-between text-[10px] font-mono text-zinc-400 font-medium">
+                                    <div className="flex justify-between text-[10px] font-mono text-muted-foreground font-medium">
                                       <span>Impact</span>
-                                      <span className="text-zinc-900 font-bold">{toneTechnical < 35 ? "Social" : toneTechnical > 65 ? "Technical" : "Balanced"}</span>
+                                      <span className="text-foreground font-bold">{toneTechnical < 35 ? "Social" : toneTechnical > 65 ? "Technical" : "Balanced"}</span>
                                       <span>Tech</span>
                                     </div>
-                                    <input type="range" min="0" max="100" value={toneTechnical} onChange={(e) => setToneTechnical(parseInt(e.target.value, 10))} className="w-full h-1 bg-zinc-200 rounded-full appearance-none cursor-pointer accent-zinc-900" />
+                                    <input type="range" aria-label="Tone Technical vs Impact" min="0" max="100" value={toneTechnical} onChange={(e) => setToneTechnical(parseInt(e.target.value, 10))} className="w-full h-1 bg-muted rounded-full appearance-none cursor-pointer accent-foreground" />
                                   </div>
-                                  <textarea placeholder="Custom directive..." value={customFocus} onChange={(e) => setCustomFocus(e.target.value)} rows={2} className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs text-zinc-900 outline-none resize-none" />
+                                  <textarea aria-label="Custom personalization directives" placeholder="Custom directive..." value={customFocus} onChange={(e) => setCustomFocus(e.target.value)} rows={2} className="w-full p-3 bg-muted border border-border rounded-xl text-xs text-foreground outline-none resize-none" />
                                 </div>
                               </motion.div>
                             )}
@@ -811,7 +816,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
 
                         <MagneticButton
                           type="submit" disabled={(!selectedDeckId && !customFile) || !targetUrl}
-                          className="w-full bg-zinc-950 text-white h-14 rounded-xl flex items-center justify-center gap-2 mt-auto hover:bg-zinc-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
+                          className="w-full bg-zinc-950 text-white h-14 rounded-xl flex items-center justify-center gap-2 mt-auto hover:bg-zinc-800 transition-all duration-150 ease-out active:scale-97 disabled:opacity-40 disabled:cursor-not-allowed shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
                         >
                           <span className="text-sm font-bold tracking-wide">Personalize Pitch</span>
                           <Sparkles className="w-4 h-4" />
@@ -824,7 +829,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                 /* STATE WORKFLOW */
                 <div className="w-full max-w-[1000px] mx-auto flex flex-col">
                   {processingState === "fetching" && (
-                    <motion.div key="fetching" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="flex flex-col items-center justify-center min-h-[calc(100vh-16rem)]">
+                    <motion.div key="fetching" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="flex flex-col items-center justify-center min-h-[calc(100dvh-16rem)]">
                       <motion.div variants={fadeInUp} className="relative w-24 h-24 mb-12 flex items-center justify-center">
                         <div className="absolute w-full h-full rounded-full border border-zinc-200 border-t-zinc-900 animate-spin" style={{ animationDuration: '2s' }} />
                         <div className="absolute w-16 h-16 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center shadow-sm">
@@ -866,7 +871,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                   )}
 
                   {processingState === "compiling" && (
-                    <motion.div key="compiling" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="flex flex-col items-center justify-center min-h-[calc(100vh-16rem)]">
+                    <motion.div key="compiling" initial="hidden" animate="visible" exit="exit" variants={staggerContainer} className="flex flex-col items-center justify-center min-h-[calc(100dvh-16rem)]">
                       <motion.div variants={fadeInUp} className="w-16 h-16 rounded-2xl bg-zinc-50 border border-zinc-200 flex items-center justify-center mb-8 shadow-sm">
                         <Loader2 className="w-6 h-6 text-zinc-900 animate-spin" />
                       </motion.div>
@@ -926,34 +931,44 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
               {decks.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {decks.map((deck) => (
-                    <motion.div variants={fadeInUp} key={deck.id} className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 flex flex-col group overflow-hidden relative">
-                      <div className="w-full aspect-video bg-zinc-100 flex items-center justify-center relative overflow-hidden">
+                    <motion.div variants={fadeInUp} key={deck.id} className="bg-card/70 backdrop-blur-xl border border-border rounded-[2rem] shadow-[0_8px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] transition-all duration-500 flex flex-col group overflow-hidden relative">
+                      <div className="w-full aspect-video bg-muted flex items-center justify-center relative overflow-hidden">
                         {deck.thumbnail_url ? (
-                          <img src={deck.thumbnail_url} alt={deck.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                          <img src={deck.thumbnail_url} alt={deck.name} className="w-full h-full object-cover transition-transform duration-700 lg:group-hover:scale-105" />
                         ) : (
-                          <div className="flex flex-col items-center text-zinc-400"><FileText className="w-8 h-8 mb-2" strokeWidth={1.5} /><span className="text-[10px] font-mono tracking-widest uppercase">No Preview</span></div>
+                          <div className="flex flex-col items-center text-muted-foreground"><FileText className="w-8 h-8 mb-2" strokeWidth={1.5} /><span className="text-[10px] font-mono tracking-widest uppercase">No Preview</span></div>
                         )}
                         <div className="absolute inset-0 bg-zinc-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-sm">
-                          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} onClick={() => { setSelectedDeckId(deck.id); setCustomFile(null); setActiveTab("studio"); }} className="bg-white text-zinc-950 px-6 py-3 rounded-full text-xs font-bold shadow-xl flex items-center gap-2">
+                          <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.97 }} onClick={() => { setSelectedDeckId(deck.id); setCustomFile(null); setActiveTab("studio"); }} className="bg-card text-foreground px-6 py-3 rounded-full text-xs font-bold shadow-xl flex items-center gap-2 active:scale-97 duration-150 ease-out">
                             <Sparkles className="w-4 h-4 text-[#269755]" /> Start Sync
                           </motion.button>
                         </div>
                       </div>
                       <div className="p-6">
-                        <h3 className="font-bold text-lg text-zinc-900 truncate mb-1">{deck.name}</h3>
-                        <p className="text-[10px] font-mono text-zinc-400 uppercase tracking-widest">{new Date(deck.created_at).toLocaleDateString()} • {deck.size || 'Unknown'}</p>
+                        <h3 className="text-lg text-foreground truncate mb-1">{deck.name}</h3>
+                        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">{new Date(deck.created_at).toLocaleDateString()} • {deck.size || 'Unknown'}</p>
                       </div>
-                      <button onClick={() => handleDeleteDeck(deck.id, deck.storage_path, deck.name)} className="absolute top-4 right-4 bg-white/90 backdrop-blur-md text-zinc-400 hover:text-red-500 p-2 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all border border-zinc-200 translate-y-[-10px] group-hover:translate-y-0">
+                      <button onClick={() => handleDeleteDeck(deck.id, deck.storage_path, deck.name)} aria-label="Delete template from library" className="absolute top-4 right-4 bg-card/90 backdrop-blur-md text-muted-foreground hover:text-red-500 p-2.5 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all border border-border translate-y-[-10px] group-hover:translate-y-0 min-h-[44px] min-w-[44px] flex items-center justify-center">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </motion.div>
                   ))}
                 </div>
               ) : (
-                <motion.div variants={fadeInUp} className="bg-white/50 border border-zinc-200/60 rounded-[2.5rem] p-24 flex flex-col items-center text-center">
-                  <Folder className="w-12 h-12 text-zinc-300 mb-6" strokeWidth={1} />
-                  <h3 className="text-xl font-bold text-zinc-900 mb-2">Library is empty</h3>
-                  <p className="text-sm text-zinc-500 max-w-sm">Upload your first `.pptx` template. It will be safely saved in Cloud Storage for future synchronizations.</p>
+                <motion.div variants={fadeInUp} className="bg-card/50 border border-border rounded-[2.5rem] p-24 flex flex-col items-center text-center">
+                  <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-6 shadow-sm border border-border">
+                    <Folder className="w-10 h-10 text-muted-foreground" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="text-xl font-bold text-foreground mb-2">Library is empty</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm mb-8">Upload your first `.pptx` template. It will be safely saved in Cloud Storage for future synchronizations.</p>
+                  <div className="relative group">
+                    <input type="file" accept=".pptx" onChange={handleUploadDeck} disabled={isUploadingDeck} aria-label="Upload PowerPoint Master Presentation" className="absolute inset-0 opacity-0 cursor-pointer disabled:cursor-not-allowed z-10" />
+                    <button disabled={isUploadingDeck} className="bg-zinc-950 text-white hover:bg-zinc-800 px-6 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all duration-150 ease-out active:scale-97 shadow-sm disabled:opacity-50">
+                      {isUploadingDeck ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      Upload Presentation
+                    </button>
+                  </div>
+                  <p className="text-[10px] font-mono text-muted-foreground tracking-widest uppercase mt-4">Max file size 25MB</p>
                 </motion.div>
               )}
             </motion.div>
@@ -968,9 +983,16 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
               </motion.div>
 
               <motion.div variants={fadeInUp} className="flex gap-4 mb-8">
-                <div className="flex-1 bg-white/80 backdrop-blur-md border border-zinc-200/80 rounded-2xl px-5 py-4 flex items-center gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-                  <Search className="w-5 h-5 text-zinc-400" />
-                  <input type="text" placeholder="Search by name, URL, or dossier keywords..." value={sponsorSearch} onChange={(e) => setSponsorSearch(e.target.value)} className="w-full bg-transparent outline-none text-sm font-medium placeholder-zinc-400 text-zinc-900" />
+                <div className="flex-1 bg-card/85 backdrop-blur-md border border-border rounded-2xl px-5 py-4 flex items-center gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+                  <Search className="w-5 h-5 text-muted-foreground" />
+                  <input 
+                    type="text" 
+                    aria-label="Search sponsors by name, website, or keyword"
+                    placeholder="Search by name, URL, or dossier keywords..." 
+                    value={sponsorSearch} 
+                    onChange={(e) => setSponsorSearch(e.target.value)} 
+                    className="w-full bg-transparent outline-none text-sm font-medium placeholder-muted-foreground text-foreground" 
+                  />
                 </div>
               </motion.div>
 
@@ -979,14 +1001,14 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                   {filteredSponsors.map((sponsor) => {
                     const isExpanded = expandedSponsorId === sponsor.id;
                     return (
-                      <motion.div layout key={sponsor.id} className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[1.5rem] p-6 shadow-[0_4px_20px_rgba(0,0,0,0.02)] transition-all">
+                      <motion.div layout variants={fadeInUp} key={sponsor.id} className="bg-card/70 backdrop-blur-xl border border-border rounded-[1.5rem] p-6 shadow-[0_4px_20px_rgba(0,0,0,0.02)] transition-all">
                         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                           <div className="flex items-center gap-5">
-                            <div className="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-600 font-bold text-lg border border-zinc-200 shrink-0">
+                            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center text-foreground font-bold text-lg border border-border shrink-0">
                               {sponsor.name.charAt(0)}
                             </div>
                             <div>
-                              <h3 className="font-bold text-xl text-zinc-900">{sponsor.name}</h3>
+                              <h3 className="text-xl font-bold text-foreground">{sponsor.name}</h3>
                               <a href={sponsor.website_url} target="_blank" rel="noreferrer" className="text-xs text-zinc-400 hover:text-[#269755] font-mono flex items-center gap-1.5 mt-1 transition-colors">
                                 <Globe className="w-3 h-3" /> {sponsor.website_url}
                               </a>
@@ -994,10 +1016,10 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                           </div>
 
                           <div className="flex items-center gap-3">
-                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => { setTargetUrl(sponsor.website_url); setActiveTab("studio"); }} className="bg-zinc-900 text-white px-5 py-2.5 rounded-full text-[11px] font-mono font-bold tracking-widest transition-all shadow-md">
+                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => { setTargetUrl(sponsor.website_url); setActiveTab("studio"); }} className="bg-zinc-900 text-white px-5 py-2.5 rounded-full text-[11px] font-mono font-bold tracking-widest transition-all duration-150 ease-out active:scale-97 shadow-md">
                               SYNC PITCH
                             </motion.button>
-                            <button onClick={() => setExpandedSponsorId(isExpanded ? null : sponsor.id)} className="w-10 h-10 rounded-full border border-zinc-200 flex items-center justify-center text-zinc-500 hover:bg-zinc-50 transition-colors">
+                            <button onClick={() => setExpandedSponsorId(isExpanded ? null : sponsor.id)} aria-label="Expand sponsor research details" className="w-11 h-11 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors min-h-[44px] min-w-[44px]">
                               <motion.div animate={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }} transition={fastSpring}><ChevronDown className="w-4 h-4" /></motion.div>
                             </button>
                           </div>
@@ -1006,9 +1028,9 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                         <AnimatePresence>
                           {isExpanded && (
                             <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                              <div className="mt-6 pt-6 border-t border-zinc-100">
-                                <span className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase font-bold block mb-3 pl-1">What we learned</span>
-                                <div className="bg-zinc-50 border border-zinc-200/80 rounded-2xl p-6 text-sm text-zinc-700 leading-relaxed max-h-[300px] overflow-y-auto whitespace-pre-wrap font-medium">
+                              <div className="mt-6 pt-6 border-t border-border">
+                                <span className="text-[10px] font-mono tracking-widest text-muted-foreground uppercase font-bold block mb-3 pl-1">What we learned</span>
+                                <div className="bg-muted border border-border p-6 text-sm text-muted-foreground leading-relaxed max-h-[300px] overflow-y-auto whitespace-pre-wrap font-medium">
                                   {sponsor.dossier_context || "No context data gathered."}
                                 </div>
                                 <div className="text-[10px] font-mono text-zinc-400 mt-4 pl-1">Scanned: {new Date(sponsor.created_at).toLocaleString()}</div>
@@ -1039,10 +1061,10 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
               </motion.div>
 
               {history.length > 0 ? (
-                <motion.div variants={fadeInUp} className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+                <motion.div variants={fadeInUp} className="bg-card/70 backdrop-blur-xl border border-border rounded-[2rem] overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
                   <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr className="bg-zinc-50/80 border-b border-zinc-200 text-[10px] font-mono tracking-widest text-zinc-500 uppercase">
+                      <tr className="bg-muted/80 border-b border-border text-[10px] font-mono tracking-widest text-muted-foreground uppercase">
                         <th className="py-5 px-8 font-bold">Document</th>
                         <th className="py-5 px-8 font-bold">Target Sponsor</th>
                         <th className="py-5 px-8 font-bold text-center">Changes</th>
@@ -1050,24 +1072,29 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                         <th className="py-5 px-8 font-bold text-right">Timestamp</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-100 text-sm text-zinc-700 font-medium">
-                      {history.map((item) => (
-                        <tr key={item.id} className="hover:bg-zinc-50/50 transition-colors">
-                          <td className="py-5 px-8 text-zinc-900 max-w-[250px] truncate" title={item.deck_name}>{item.deck_name}</td>
+                    <tbody className="divide-y divide-border text-sm text-foreground font-medium">
+                      {history.map((item, idx) => (
+                        <motion.tr variants={fadeInUp} custom={idx} key={item.id} className="hover:bg-muted/50 transition-colors">
+                          <td className="py-5 px-8 text-foreground max-w-[250px] truncate" title={item.deck_name}>{item.deck_name}</td>
                           <td className="py-5 px-8 text-[#269755] font-bold">{item.sponsor_name}</td>
-                          <td className="py-5 px-8 text-center"><span className="bg-zinc-100 px-3 py-1 rounded-full text-xs font-mono font-bold text-zinc-600">{item.replacements_count}</span></td>
-                          <td className="py-5 px-8 text-center"><span className="bg-zinc-100 px-3 py-1 rounded-full text-xs font-mono font-bold text-zinc-600">{item.slides_modified}</span></td>
-                          <td className="py-5 px-8 text-right text-zinc-400 font-mono text-[10px]">{new Date(item.created_at).toLocaleString()}</td>
-                        </tr>
+                          <td className="py-5 px-8 text-center"><span className="bg-muted px-3 py-1 rounded-full text-xs font-mono font-bold text-muted-foreground">{item.replacements_count}</span></td>
+                          <td className="py-5 px-8 text-center"><span className="bg-muted px-3 py-1 rounded-full text-xs font-mono font-bold text-muted-foreground">{item.slides_modified}</span></td>
+                          <td className="py-5 px-8 text-right text-muted-foreground font-mono text-[10px]">{new Date(item.created_at).toLocaleString()}</td>
+                        </motion.tr>
                       ))}
                     </tbody>
                   </table>
                 </motion.div>
               ) : (
-                <motion.div variants={fadeInUp} className="bg-white/50 border border-zinc-200/60 rounded-[2.5rem] p-24 flex flex-col items-center text-center">
-                  <History className="w-12 h-12 text-zinc-300 mb-6" strokeWidth={1} />
-                  <h3 className="text-xl font-bold text-zinc-900 mb-2">No ledger records</h3>
-                  <p className="text-sm text-zinc-500 max-w-sm">A historical log of sync events will compile here automatically.</p>
+                <motion.div variants={fadeInUp} className="bg-card/50 border border-border rounded-[2.5rem] p-24 flex flex-col items-center text-center">
+                  <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-6 shadow-sm border border-border">
+                    <History className="w-10 h-10 text-muted-foreground" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="text-xl font-bold text-foreground mb-2">No ledger records</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm mb-8">A historical log of sync events will compile here automatically after you personalize your first presentation.</p>
+                  <button onClick={() => setActiveTab("studio")} className="bg-zinc-950 text-white hover:bg-zinc-800 px-6 py-3 rounded-xl text-sm font-semibold flex items-center gap-2 transition-all duration-150 ease-out active:scale-97 shadow-sm">
+                    <Sparkles className="w-4 h-4 text-[#CFEE91]" /> Go to Studio
+                  </button>
                 </motion.div>
               )}
             </motion.div>

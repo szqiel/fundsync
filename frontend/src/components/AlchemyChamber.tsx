@@ -109,7 +109,7 @@ export function AlchemyChamber({
       <motion.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-white/70 backdrop-blur-xl border border-zinc-200/60 p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] rounded-[2rem]"
+        className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 bg-card/70 backdrop-blur-xl border border-border p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] rounded-[2rem]"
       >
         <div>
           <div className="flex items-center gap-2 mb-3">
@@ -130,7 +130,7 @@ export function AlchemyChamber({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             onClick={onCancel}
-            className="bg-white border border-zinc-200/80 text-zinc-500 hover:text-zinc-900 px-6 py-3.5 rounded-full text-xs font-mono font-bold tracking-wider transition-all shadow-sm"
+            className="bg-card border border-border text-muted-foreground hover:text-foreground px-6 py-3.5 rounded-full text-xs font-mono font-bold tracking-wider transition-all shadow-sm min-h-[44px] flex items-center justify-center"
           >
             DISCARD
           </motion.button>
@@ -139,7 +139,7 @@ export function AlchemyChamber({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleFinalCompile}
-            className="bg-zinc-950 hover:bg-zinc-800 text-white px-7 py-3.5 rounded-full text-xs font-mono font-bold tracking-wider transition-all flex items-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.1)]"
+            className="bg-foreground text-background px-7 py-3.5 rounded-full text-xs font-mono font-bold tracking-wider transition-all flex items-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.1)] min-h-[44px]"
           >
             COMPILE DECK <ArrowRight className="w-4 h-4" />
           </motion.button>
@@ -153,12 +153,12 @@ export function AlchemyChamber({
         <div className="xl:col-span-8 space-y-6">
           
           {/* Filters & Bulk selectors */}
-          <div className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-sm text-xs font-mono">
+          <div className="bg-card/70 backdrop-blur-xl border border-border p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-sm text-xs font-mono">
             <div className="flex items-center gap-4 pl-2">
               <div className="flex items-center gap-2 text-zinc-400 font-bold uppercase tracking-widest text-[10px]">
                 <Filter className="w-3.5 h-3.5" /> Filter
               </div>
-              <div className="flex bg-zinc-100/80 border border-zinc-200/50 rounded-lg p-1">
+              <div className="flex bg-muted border border-border/50 rounded-lg p-1">
                 {[
                   { id: "all", label: `All (${rows.length})` },
                   { id: "selected", label: `Kept (${selectedCount})` },
@@ -167,8 +167,8 @@ export function AlchemyChamber({
                   <button
                     key={f.id}
                     onClick={() => setFilter(f.id as any)}
-                    className={`px-4 py-1.5 rounded-md font-bold transition-all duration-300 ${
-                      filter === f.id ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-600"
+                    className={`px-4 py-2.5 rounded-md font-bold transition-all duration-300 min-h-[38px] flex items-center justify-center ${
+                      filter === f.id ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     {f.label}
@@ -209,19 +209,19 @@ export function AlchemyChamber({
                       key={row.id}
                       className={`transition-all p-6 relative rounded-[1.5rem] shadow-sm backdrop-blur-md overflow-hidden ${
                         row.selected 
-                          ? "bg-white border-2 border-[#269755]/20 shadow-[0_4px_20px_rgba(16,185,129,0.03)]" 
-                          : "bg-white/40 border-2 border-zinc-200/50 opacity-60 hover:opacity-100"
+                          ? "bg-card border-2 border-[#269755]/20 shadow-[0_4px_20px_rgba(16,185,129,0.03)]" 
+                          : "bg-card/40 border-2 border-border/50 opacity-60 hover:opacity-100"
                       }`}
                     >
                       {/* Segmented control / Header */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-5 border-b border-zinc-100/80">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-5 border-b border-border/80">
                         <div className="flex items-center gap-4">
-                          <div className="flex bg-zinc-100 rounded-lg p-1 border border-zinc-200/60">
+                          <div className="flex bg-muted rounded-lg p-1 border border-border/60">
                             <button
                               type="button"
                               onClick={() => setRows(prev => prev.map(r => r.id === row.id ? { ...r, selected: false } : r))}
-                              className={`px-4 py-1.5 text-[10px] font-mono font-bold transition-all rounded-md flex items-center gap-1.5 ${
-                                !row.selected ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-400 hover:text-zinc-700"
+                              className={`px-4 py-2 text-[10px] font-mono font-bold transition-all rounded-md flex items-center gap-1.5 min-h-[38px] ${
+                                !row.selected ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                               }`}
                             >
                               <X className="w-3.5 h-3.5" /> Reject
@@ -229,8 +229,8 @@ export function AlchemyChamber({
                             <button
                               type="button"
                               onClick={() => setRows(prev => prev.map(r => r.id === row.id ? { ...r, selected: true } : r))}
-                              className={`px-4 py-1.5 text-[10px] font-mono font-bold transition-all rounded-md flex items-center gap-1.5 ${
-                                row.selected ? "bg-[#CFEE91]/40 text-[#1d7240] shadow-sm" : "text-zinc-400 hover:text-zinc-700"
+                              className={`px-4 py-2 text-[10px] font-mono font-bold transition-all rounded-md flex items-center gap-1.5 min-h-[38px] ${
+                                row.selected ? "bg-[#CFEE91]/40 text-[#1d7240] shadow-sm" : "text-muted-foreground hover:text-foreground"
                               }`}
                             >
                               <Check className="w-3.5 h-3.5" /> Approve
@@ -238,7 +238,7 @@ export function AlchemyChamber({
                           </div>
                           
                           <span className={`text-[9px] font-mono font-bold px-3 py-1.5 tracking-widest uppercase rounded-full ${
-                            row.selected ? "bg-[#269755]/10 text-[#269755]" : "bg-zinc-200 text-zinc-500"
+                            row.selected ? "bg-[#269755]/10 text-[#269755]" : "bg-muted text-muted-foreground"
                           }`}>
                             {row.selected ? "Will Sync" : "Preserving Original"}
                           </span>
@@ -267,7 +267,7 @@ export function AlchemyChamber({
                           <span className="text-[10px] font-mono tracking-widest text-zinc-400 uppercase font-bold flex items-center gap-2">
                             <FileText className="w-3.5 h-3.5" /> Master Template
                           </span>
-                          <div className="p-4 bg-zinc-50/50 border border-zinc-100 text-xs leading-relaxed text-zinc-500 font-medium rounded-xl select-none h-[calc(100%-24px)] min-h-[100px]">
+                          <div className="p-4 bg-muted/50 border border-border text-xs leading-relaxed text-muted-foreground font-medium rounded-xl select-none h-[calc(100%-24px)] min-h-[100px]">
                             {row.original}
                           </div>
                         </div>
@@ -286,10 +286,10 @@ export function AlchemyChamber({
                             disabled={!row.selected}
                             className={`w-full p-4 text-xs leading-relaxed font-semibold focus:outline-none transition-all border rounded-xl h-[calc(100%-24px)] min-h-[100px] ${
                               !row.selected 
-                                ? "bg-transparent border-zinc-200 text-zinc-400 resize-none opacity-50" 
+                                ? "bg-transparent border-border text-muted-foreground resize-none opacity-50" 
                                 : isTooLong
-                                  ? "bg-red-50/30 border-red-300 text-zinc-900 focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
-                                  : "bg-white border-zinc-200 text-zinc-900 focus:border-[#269755] focus:ring-4 focus:ring-[#269755]/10 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
+                                  ? "bg-red-50/30 border-red-300 text-foreground focus:border-red-500 focus:ring-4 focus:ring-red-500/10"
+                                  : "bg-card border-border text-foreground focus:border-[#269755] focus:ring-4 focus:ring-[#269755]/10 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]"
                             }`}
                           />
                         </div>
@@ -318,7 +318,7 @@ export function AlchemyChamber({
               ) : (
                 <motion.div 
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 rounded-[2rem] p-16 text-center text-sm font-mono text-zinc-400 flex flex-col items-center"
+                  className="bg-card/70 backdrop-blur-xl border border-border rounded-[2rem] p-16 text-center text-sm font-mono text-muted-foreground flex flex-col items-center"
                 >
                   <Filter className="w-10 h-10 mb-4 text-zinc-300" strokeWidth={1} />
                   No proposed modifications match the current view filter.
@@ -331,23 +331,23 @@ export function AlchemyChamber({
         {/* Right Side: Sponsor mandate details */}
         <div className="xl:col-span-4 space-y-6">
           
-          <div className="bg-white/70 backdrop-blur-xl border border-zinc-200/60 p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)] rounded-[2rem] flex flex-col gap-4 sticky top-24">
-            <div className="text-[10px] font-mono tracking-widest text-zinc-900 uppercase font-bold flex items-center gap-2 border-b border-zinc-100 pb-4">
+          <div className="bg-card/70 backdrop-blur-xl border border-border p-6 shadow-[0_8px_30px_rgba(0,0,0,0.04)] rounded-[2rem] flex flex-col gap-4 sticky top-24">
+            <div className="text-[10px] font-mono tracking-widest text-foreground uppercase font-bold flex items-center gap-2 border-b border-border pb-4">
               <Layers className="w-4 h-4 text-[#269755]" />
               Sponsor Research
             </div>
             
-            <p className="text-xs text-zinc-500 font-medium leading-relaxed">
+            <p className="text-xs text-muted-foreground font-medium leading-relaxed">
               Here is the information we found on the sponsor's website. We used this to personalize your presentation.
             </p>
 
             <button
               onClick={() => setIsDossierOpen(!isDossierOpen)}
-              className="w-full flex items-center justify-between border border-zinc-200 bg-white p-4 text-[10px] font-mono font-bold tracking-widest hover:bg-zinc-50 transition-colors rounded-xl shadow-sm uppercase mt-2 text-zinc-700"
+              className="w-full flex items-center justify-between border border-border bg-card p-4 text-[10px] font-mono font-bold tracking-widest hover:bg-muted transition-colors rounded-xl shadow-sm uppercase mt-2 text-foreground min-h-[44px]"
             >
               <span>{isDossierOpen ? "Collapse Data" : "Expand Raw Data"}</span>
               <motion.div animate={{ transform: isDossierOpen ? "rotate(180deg)" : "rotate(0deg)" }} transition={fastSpring}>
-                <ChevronDown className="w-4 h-4 text-zinc-400" />
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
               </motion.div>
             </button>
 
@@ -360,7 +360,7 @@ export function AlchemyChamber({
                   transition={springTransition}
                   className="overflow-hidden"
                 >
-                  <div className="bg-zinc-50 border border-zinc-200/80 p-5 rounded-xl text-[11px] font-mono text-zinc-700 font-medium leading-relaxed max-h-[400px] overflow-y-auto whitespace-pre-wrap shadow-inner">
+                  <div className="bg-muted border border-border/80 p-5 rounded-xl text-[11px] font-mono text-muted-foreground font-medium leading-relaxed max-h-[400px] overflow-y-auto whitespace-pre-wrap shadow-inner">
                     {scrapedContext || "No scraped context available."}
                   </div>
                 </motion.div>
