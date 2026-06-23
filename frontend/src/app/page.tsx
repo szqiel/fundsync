@@ -484,13 +484,13 @@ export default function Home() {
               className="w-full max-w-2xl flex flex-col items-center py-20"
             >
               <motion.div variants={fadeInUp} className="relative w-24 h-24 mb-12 flex items-center justify-center">
-                <div className="absolute w-full h-full rounded-full border border-zinc-200 border-t-zinc-900 animate-spin" style={{ animationDuration: '2s' }} />
+                <div className="absolute w-full h-full rounded-full border border-zinc-200 border-t-primary animate-spin" style={{ animationDuration: '2s' }} />
                 <div className="absolute w-16 h-16 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center shadow-sm">
-                  <Sparkles className="w-6 h-6 text-zinc-900 animate-pulse" />
+                  <img src="/FundSync_Logo.svg" alt="FundSync Logo" className="w-7 h-7 animate-pulse" />
                 </div>
               </motion.div>
 
-              <motion.h2 variants={fadeInUp} className="text-2xl font-bold tracking-tight mb-12 text-zinc-900 text-center">
+              <motion.h2 variants={fadeInUp} className="text-2xl font-bold tracking-tight mb-12 text-foreground text-center">
                 Personalizing presentation layers...
               </motion.h2>
 

@@ -833,7 +833,7 @@ export default function Dashboard({ user, onLogout }: DashboardProps) {
                       <motion.div variants={fadeInUp} className="relative w-24 h-24 mb-12 flex items-center justify-center">
                         <div className="absolute w-full h-full rounded-full border border-zinc-200 border-t-primary animate-spin" style={{ animationDuration: '2s' }} />
                         <div className="absolute w-16 h-16 rounded-full bg-zinc-50 border border-zinc-100 flex items-center justify-center shadow-sm">
-                          <Sparkles className="w-6 h-6 text-primary animate-pulse" />
+                          <img src="/FundSync_Logo.svg" alt="FundSync Logo" className="w-7 h-7 animate-pulse" />
                         </div>
                       </motion.div>
                       <motion.h2 variants={fadeInUp} className="text-2xl font-bold tracking-tight mb-12 text-foreground text-center">Personalizing your presentation...</motion.h2>

@@ -139,7 +139,7 @@ export function AlchemyChamber({
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
             onClick={handleFinalCompile}
-            className="bg-foreground text-background px-7 py-3.5 rounded-full text-xs font-mono font-bold tracking-wider transition-all flex items-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.1)] min-h-[44px]"
+            className="bg-primary text-primary-foreground px-7 py-3.5 rounded-full text-xs font-mono font-bold tracking-wider transition-[transform,shadow,background-color] flex items-center gap-2 shadow-[0_4px_14px_rgba(0,0,0,0.1)] min-h-[44px] active:scale-97 hover:bg-primary/90"
           >
             COMPILE DECK <ArrowRight className="w-4 h-4" />
           </motion.button>
